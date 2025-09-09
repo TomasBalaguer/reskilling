@@ -366,28 +366,28 @@ class CampaignController extends Controller
         if ($request->hasFile('audio_files')) {
             foreach ($request->file('audio_files') as $key => $file) {
                 if ($file->isValid()) {
-                    // Upload to S3
+                    // Try to upload to S3, fallback to local storage
+                    $extension = $file->getClientOriginalExtension();
+                    // If no extension, try to guess from mime type
+                    if (empty($extension)) {
+                        $mimeType = $file->getMimeType();
+                        if (str_contains($mimeType, 'webm')) {
+                            $extension = 'webm';
+                        } elseif (str_contains($mimeType, 'mp3')) {
+                            $extension = 'mp3';
+                        } elseif (str_contains($mimeType, 'wav')) {
+                            $extension = 'wav';
+                        } elseif (str_contains($mimeType, 'ogg')) {
+                            $extension = 'ogg';
+                        } else {
+                            $extension = 'webm'; // default
+                        }
+                    }
+                    
                     try {
                         $s3Path = $fileStorageService->uploadAudio($file, 'responses');
                         $s3Paths[$key] = $s3Path;
                         
-                        // Keep local info for compatibility
-                        $extension = $file->getClientOriginalExtension();
-                        // If no extension, try to guess from mime type
-                        if (empty($extension)) {
-                            $mimeType = $file->getMimeType();
-                            if (str_contains($mimeType, 'webm')) {
-                                $extension = 'webm';
-                            } elseif (str_contains($mimeType, 'mp3')) {
-                                $extension = 'mp3';
-                            } elseif (str_contains($mimeType, 'wav')) {
-                                $extension = 'wav';
-                            } elseif (str_contains($mimeType, 'ogg')) {
-                                $extension = 'ogg';
-                            } else {
-                                $extension = 'webm'; // default
-                            }
-                        }
                         $filename = 'audio_' . Str::random(10) . '_' . time() . '.' . $extension;
                         
                         $audioFiles[$key] = [
@@ -400,24 +400,8 @@ class CampaignController extends Controller
                             'storage' => 's3'
                         ];
                     } catch (\Exception $e) {
-                        \Log::error('Error uploading audio to S3: ' . $e->getMessage());
+                        \Log::warning('S3 upload failed, using local storage: ' . $e->getMessage());
                         // Fallback to local storage
-                        $extension = $file->getClientOriginalExtension();
-                        // If no extension, try to guess from mime type
-                        if (empty($extension)) {
-                            $mimeType = $file->getMimeType();
-                            if (str_contains($mimeType, 'webm')) {
-                                $extension = 'webm';
-                            } elseif (str_contains($mimeType, 'mp3')) {
-                                $extension = 'mp3';
-                            } elseif (str_contains($mimeType, 'wav')) {
-                                $extension = 'wav';
-                            } elseif (str_contains($mimeType, 'ogg')) {
-                                $extension = 'ogg';
-                            } else {
-                                $extension = 'webm'; // default
-                            }
-                        }
                         $filename = 'audio_' . Str::random(10) . '_' . time() . '.' . $extension;
                         $path = $file->storeAs('campaign_responses/audio', $filename, 'public');
                         
@@ -478,18 +462,14 @@ class CampaignController extends Controller
     }
 
     /**
-     * Generate a unique session ID that fits in database column
+     * Generate a unique session ID that fits in database uuid column (36 chars)
      */
     private function generateUniqueSessionId(Request $request): string
     {
         $originalSessionId = $request->session()->getId();
         
-        // If original session ID is short enough, use it
-        if (strlen($originalSessionId) <= 40) {
-            return $originalSessionId;
-        }
-        
-        // Generate a shorter unique ID based on original session + timestamp
-        return substr(md5($originalSessionId . time()), 0, 40);
+        // Generate a proper UUID v4 format from the session ID
+        // This ensures it's always 36 characters and fits the database column
+        return (string) Str::uuid();
     }
 }

@@ -13,6 +13,11 @@ class FileStorageService
      */
     public function uploadAudio(UploadedFile $file, string $folder = 'responses'): string
     {
+        // Check if S3 is properly configured
+        if (!$this->isS3Configured()) {
+            throw new \Exception('S3 configuration is missing. Please check AWS environment variables.');
+        }
+
         $extension = $file->getClientOriginalExtension();
         
         // If no extension, try to guess from mime type
@@ -141,5 +146,18 @@ class FileStorageService
     public function getImageSize(string $path): int
     {
         return Storage::disk('images')->size($path);
+    }
+
+    /**
+     * Check if S3 is properly configured
+     */
+    private function isS3Configured(): bool
+    {
+        $bucket = config('filesystems.disks.audio-storage.bucket');
+        $key = config('filesystems.disks.audio-storage.key');
+        $secret = config('filesystems.disks.audio-storage.secret');
+        $region = config('filesystems.disks.audio-storage.region');
+
+        return !empty($bucket) && !empty($key) && !empty($secret) && !empty($region);
     }
 }
