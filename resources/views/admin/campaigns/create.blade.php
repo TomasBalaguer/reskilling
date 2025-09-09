@@ -98,7 +98,7 @@
                                                 @if($questionnaire->description)
                                                     <br><small class="text-muted">{{ $questionnaire->description }}</small>
                                                 @endif
-                                                <br><small class="badge bg-info">{{ $questionnaire->questionnaire_type->getDisplayName() ?? 'Tipo: ' . $questionnaire->questionnaire_type->value }}</small>
+                                                <br><small class="badge bg-info">Tipo: {{ $questionnaire->questionnaire_type ?? 'No especificado' }}</small>
                                             </label>
                                         </div>
                                     @endforeach
