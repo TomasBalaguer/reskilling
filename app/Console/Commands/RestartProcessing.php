@@ -47,7 +47,11 @@ class RestartProcessing extends Command
             
             if ($response) {
                 $response->update(['processing_status' => 'pending']);
-                QuestionnaireResponseSubmitted::dispatch($response);
+                
+                // Determine if AI processing is required (has audio files)
+                $requiresAI = !empty($response->audio_files) && is_array($response->audio_files) && count($response->audio_files) > 0;
+                QuestionnaireResponseSubmitted::dispatch($response, [], $requiresAI);
+                
                 $this->info("✅ Respuesta ID {$responseId} enviada a la cola");
             } else {
                 $this->error("❌ Respuesta ID {$responseId} no encontrada");
@@ -69,13 +73,19 @@ class RestartProcessing extends Command
                 // Reprocess failed responses
                 foreach ($failedResponses as $response) {
                     $response->update(['processing_status' => 'pending']);
-                    QuestionnaireResponseSubmitted::dispatch($response);
+                    
+                    // Determine if AI processing is required (has audio files)
+                    $requiresAI = !empty($response->audio_files) && is_array($response->audio_files) && count($response->audio_files) > 0;
+                    QuestionnaireResponseSubmitted::dispatch($response, [], $requiresAI);
+                    
                     $this->line("   - Reprocesando respuesta ID {$response->id}");
                 }
                 
                 // Reprocess pending responses that might be stuck
                 foreach ($pendingResponses as $response) {
-                    QuestionnaireResponseSubmitted::dispatch($response);
+                    // Determine if AI processing is required (has audio files)
+                    $requiresAI = !empty($response->audio_files) && is_array($response->audio_files) && count($response->audio_files) > 0;
+                    QuestionnaireResponseSubmitted::dispatch($response, [], $requiresAI);
                     $this->line("   - Reenviando respuesta pendiente ID {$response->id}");
                 }
                 

@@ -147,8 +147,11 @@ class RequeueResponses extends Command
                     'processing_failed_at' => null
                 ]);
 
-                // Dispatch to queue
-                QuestionnaireResponseSubmitted::dispatch($response);
+                // Determine if AI processing is required (has audio files)
+                $requiresAI = !empty($response->audio_files) && is_array($response->audio_files) && count($response->audio_files) > 0;
+                
+                // Dispatch to queue with proper AI processing flag
+                QuestionnaireResponseSubmitted::dispatch($response, [], $requiresAI);
                 
                 $processed++;
                 $bar->advance();
