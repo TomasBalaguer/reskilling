@@ -12,59 +12,90 @@
     
     <style>
         body {
-            background: linear-gradient(135deg, #4caf50, #2e7d32);
+            background: #f8fafc;
             min-height: 100vh;
             display: flex;
             align-items: center;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
         .login-card {
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            max-width: 400px;
+            border-radius: 1rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            max-width: 420px;
             width: 100%;
-            padding: 40px;
+            padding: 3rem 2.5rem;
+            border: 1px solid #f1f5f9;
         }
         .login-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 2rem;
         }
-        .login-header i {
-            font-size: 3rem;
-            color: #4caf50;
-            margin-bottom: 15px;
+        .login-header .logo {
+            max-width: 200px;
+            height: auto;
+            margin-bottom: 1.5rem;
         }
         .login-header h2 {
-            color: #333;
-            font-weight: 300;
+            color: #1e293b;
+            font-weight: 600;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .login-header p {
+            color: #64748b;
+            font-size: 0.875rem;
         }
         .form-control {
-            border-radius: 10px;
-            padding: 12px 15px;
-            border: 2px solid #e9ecef;
+            border-radius: 0.5rem;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e2e8f0;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
         }
         .form-control:focus {
-            border-color: #4caf50;
-            box-shadow: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+        .form-label {
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
         }
         .btn-login {
-            background: linear-gradient(45deg, #4caf50, #2e7d32);
+            background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 50%, #22c55e 100%);
             border: none;
-            border-radius: 10px;
-            padding: 12px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            border-radius: 0.5rem;
+            padding: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            color: white;
         }
         .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+            background: linear-gradient(135deg, #7c3aed 0%, #0891b2 50%, #16a34a 100%);
         }
         .admin-link {
             text-align: center;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #e9ecef;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #f1f5f9;
+        }
+        .admin-link a {
+            color: #8b5cf6;
+            font-weight: 500;
+        }
+        .admin-link a:hover {
+            color: #7c3aed;
+        }
+        .form-check-input:checked {
+            background-color: #8b5cf6;
+            border-color: #8b5cf6;
+        }
+        .form-check-input:focus {
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
         }
     </style>
 </head>
@@ -74,9 +105,9 @@
             <div class="col-md-6 col-lg-5">
                 <div class="login-card">
                     <div class="login-header">
-                        <i class="fas fa-building"></i>
+                        <img src="{{ asset('images/reskiling-logo.png') }}" alt="RE-SKILLING.AI" class="logo">
                         <h2>Panel Empresa</h2>
-                        <p class="text-muted">Acceso para usuarios de empresa</p>
+                        <p>Acceso para usuarios de empresa</p>
                     </div>
                     
                     <form method="POST" action="{{ route('company.login') }}">
