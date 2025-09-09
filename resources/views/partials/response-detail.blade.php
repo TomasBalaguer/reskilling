@@ -15,10 +15,15 @@
         }
     }
     
-    // Obtener respuestas desde el campo responses (JSON)
-    $allResponses = json_decode($response->responses, true) ?? [];
-    $transcriptions = json_decode($response->transcriptions, true) ?? [];
-    $prosodicAnalysis = json_decode($response->prosodic_analysis, true) ?? [];
+    // Obtener respuestas desde el campo responses (puede ser JSON string o array)
+    $allResponses = is_string($response->responses) ? json_decode($response->responses, true) : $response->responses;
+    $allResponses = $allResponses ?? [];
+    
+    $transcriptions = is_string($response->transcriptions) ? json_decode($response->transcriptions, true) : $response->transcriptions;
+    $transcriptions = $transcriptions ?? [];
+    
+    $prosodicAnalysis = is_string($response->prosodic_analysis) ? json_decode($response->prosodic_analysis, true) : $response->prosodic_analysis;
+    $prosodicAnalysis = $prosodicAnalysis ?? [];
 @endphp
 
 <div class="accordion mb-4" id="mainAccordion">
@@ -65,7 +70,8 @@
                                         
                                         @if($audioUrl = null)
                                             @php
-                                                $audioFiles = json_decode($response->audio_files, true) ?? [];
+                                                $audioFiles = is_string($response->audio_files) ? json_decode($response->audio_files, true) : $response->audio_files;
+                                                $audioFiles = $audioFiles ?? [];
                                                 if (isset($audioFiles[$questionId]) && isset($audioFiles[$questionId]['s3_path'])) {
                                                     try {
                                                         $audioUrl = \Storage::disk('audio-storage')->temporaryUrl(
