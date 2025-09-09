@@ -345,8 +345,37 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
             
             // Guardar respuestas actualizadas si hay cambios
             if ($hasUpdates) {
-                $response->update(['responses' => $updatedResponses]);
-                Log::info("Transcripciones guardadas para respuesta {$this->responseId}");
+                // Extraer transcripciones y análisis prosódico para guardar en campos separados
+                $transcriptions = [];
+                $prosodicAnalysis = [];
+                
+                foreach ($updatedResponses as $responseKey => $responseData) {
+                    // Extraer transcripciones
+                    if (isset($responseData['transcription_text'])) {
+                        $transcriptions[$responseKey] = $responseData['transcription_text'];
+                    }
+                    
+                    // Extraer análisis prosódico (métricas de Gemini)
+                    if (isset($responseData['gemini_analysis'])) {
+                        $prosodicAnalysis[$responseKey] = $responseData['gemini_analysis'];
+                    }
+                }
+                
+                // Actualizar todos los campos relevantes
+                $updateData = [
+                    'responses' => $updatedResponses,
+                    'transcriptions' => !empty($transcriptions) ? $transcriptions : null,
+                    'prosodic_analysis' => !empty($prosodicAnalysis) ? $prosodicAnalysis : null
+                ];
+                
+                $response->update($updateData);
+                
+                Log::info("✅ Transcripciones y análisis prosódico guardados", [
+                    'response_id' => $this->responseId,
+                    'transcriptions_count' => count($transcriptions),
+                    'prosodic_count' => count($prosodicAnalysis),
+                    'fields_updated' => array_keys($updateData)
+                ]);
             }
             
             Log::info("Procesamiento asíncrono completado para respuesta: {$this->responseId}");

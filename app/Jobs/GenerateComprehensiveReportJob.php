@@ -97,15 +97,52 @@ class GenerateComprehensiveReportJob implements ShouldQueue
      */
     private function generateReport(CampaignResponse $response): array
     {
-        return [
-            'report_metadata' => $this->generateReportMetadata($response),
-            'executive_summary' => $this->generateExecutiveSummary($response),
-            'sections' => $this->generateReportSections($response),
-            'appendices' => $this->generateAppendices($response),
-            'recommendations' => $this->generateRecommendations($response),
-            'generated_at' => now(),
-            'version' => '1.0'
+        // Use ComprehensiveReportService for AI-powered report generation
+        $reportService = app(\App\Services\ComprehensiveReportService::class);
+        
+        // Prepare report data with all available information
+        $reportData = [
+            'respondent_info' => [
+                'name' => $response->respondent_name,
+                'email' => $response->respondent_email,
+                'age' => $response->respondent_age
+            ],
+            'campaign_info' => [
+                'name' => $response->campaign->name,
+                'company' => $response->campaign->company->name,
+                'questionnaire_type' => $response->questionnaire->questionnaire_type?->value ?? 'REFLECTIVE_QUESTIONS'
+            ],
+            'responses' => [
+                'raw_responses' => $response->raw_responses ?? [],
+                'processed_responses' => $response->processed_responses ?? []
+            ],
+            'transcriptions' => $response->transcriptions ?? [],
+            'prosodic_analysis' => $response->prosodic_analysis ?? [],
+            'ai_analysis' => $response->ai_analysis ?? [],
+            'response_id' => $response->id,
+            'campaign_id' => $response->campaign_id
         ];
+        
+        // Extract transcriptions from responses if not in transcriptions field
+        if (empty($reportData['transcriptions']) && $response->responses) {
+            $transcriptions = [];
+            foreach ($response->responses as $questionId => $questionResponse) {
+                if (isset($questionResponse['transcription_text'])) {
+                    $transcriptions[$questionId] = $questionResponse['transcription_text'];
+                }
+            }
+            if (!empty($transcriptions)) {
+                $reportData['transcriptions'] = $transcriptions;
+            }
+        }
+        
+        // Generate the comprehensive report with AI
+        $aiGeneratedReport = $reportService->generateComprehensiveReport($reportData);
+        
+        // Parse the AI response to extract sections
+        $parsedReport = $this->parseAIReport($aiGeneratedReport, $response);
+        
+        return $parsedReport;
     }
 
     /**
@@ -399,6 +436,63 @@ class GenerateComprehensiveReportJob implements ShouldQueue
             'Share report with relevant stakeholders',
             'Implement recommended actions',
             'Track progress and outcomes'
+        ];
+    }
+    
+    /**
+     * Parse AI-generated report into structured format
+     */
+    private function parseAIReport(string $aiReport, CampaignResponse $response): array
+    {
+        // Extract sections from the AI-generated text
+        $sections = [];
+        
+        // Parse the report text to extract structured sections
+        $reportLines = explode("\n", $aiReport);
+        $currentSection = null;
+        $currentContent = '';
+        
+        foreach ($reportLines as $line) {
+            // Check if this is a section header
+            if (preg_match('/^###?\s+(.+)$/', $line, $matches)) {
+                // Save previous section if exists
+                if ($currentSection) {
+                    $sections[] = [
+                        'title' => $currentSection,
+                        'content' => trim($currentContent)
+                    ];
+                }
+                $currentSection = $matches[1];
+                $currentContent = '';
+            } else {
+                $currentContent .= $line . "\n";
+            }
+        }
+        
+        // Don't forget the last section
+        if ($currentSection) {
+            $sections[] = [
+                'title' => $currentSection,
+                'content' => trim($currentContent)
+            ];
+        }
+        
+        return [
+            'content' => $aiReport,
+            'sections' => $sections,
+            'metadata' => [
+                'word_count' => str_word_count($aiReport),
+                'ai_model' => config('ai.gemini.model_version', 'gemini-1.5-flash'),
+                'processing_version' => '1.0'
+            ],
+            'generated_at' => now(),
+            'response_id' => $response->id,
+            'respondent_name' => $response->respondent_name,
+            'campaign_info' => [
+                'name' => $response->campaign->name,
+                'company' => $response->campaign->company->name
+            ],
+            'report_type' => 'comprehensive_professional'
         ];
     }
 

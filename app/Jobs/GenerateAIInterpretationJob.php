@@ -126,7 +126,27 @@ class GenerateAIInterpretationJob implements ShouldQueue
     {
         $questionnaireResults = [];
 
-        // Include transcriptions if available (for audio responses)
+        // Check for transcriptions in responses field (where they're actually stored)
+        if ($response->responses) {
+            $transcriptions = [];
+            $hasAudioContent = false;
+            
+            // Extract transcriptions from responses
+            foreach ($response->responses as $questionId => $questionResponse) {
+                if (isset($questionResponse['transcription_text'])) {
+                    $transcriptions[$questionId] = $questionResponse['transcription_text'];
+                    $hasAudioContent = true;
+                }
+            }
+            
+            if ($hasAudioContent) {
+                $questionnaireResults['transcriptions'] = $transcriptions;
+                $questionnaireResults['has_audio_content'] = true;
+                $questionnaireResults['responses'] = $response->responses;
+            }
+        }
+        
+        // Include transcriptions field if available (new structure)
         if ($response->transcriptions) {
             $questionnaireResults['transcriptions'] = $response->transcriptions;
             $questionnaireResults['has_audio_content'] = true;
