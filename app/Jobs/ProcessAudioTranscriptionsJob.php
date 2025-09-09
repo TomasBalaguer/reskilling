@@ -210,8 +210,9 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
                                 'is_s3_audio' => $isS3Audio
                             ]);
                             
-                            // Analizar audio con Gemini
-                            $analysis = $aiService->analyzeAudioWithGemini($audioPath, $questionText);
+                            // Analizar audio con Gemini, pasando el nombre del archivo S3 para detectar MIME correcto
+                            $originalFileName = $isS3Audio ? $s3Path : '';
+                            $analysis = $aiService->analyzeAudioWithGemini($audioPath, $questionText, $originalFileName);
                             
                             Log::info("📊 RESULTADO DEL ANÁLISIS GEMINI", [
                                 'response_id' => $this->responseId,
@@ -317,7 +318,7 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
                                 
                                 Log::info("Transcribiendo audio para pregunta {$questionId} del cuestionario {$questionnaireId}: {$audioPath}");
                                 
-                                // Analizar audio con Gemini
+                                // Analizar audio con Gemini (archivo local, MIME se detecta del path)
                                 $analysis = $aiService->analyzeAudioWithGemini($audioPath, $questionText);
                                 
                                 // Actualizar respuesta con transcripción

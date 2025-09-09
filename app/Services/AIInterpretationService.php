@@ -170,7 +170,7 @@ class AIInterpretationService
      * @param string $questionText Texto de la pregunta para contexto
      * @return array Array con transcripción y análisis prosódico
      */
-    public function analyzeAudioWithGemini(string $audioFilePath, string $questionText = ''): array
+    public function analyzeAudioWithGemini(string $audioFilePath, string $questionText = '', string $originalFileName = ''): array
     {
         Log::info('🎙️ INICIANDO ANÁLISIS DE AUDIO', [
             'audio_file_path' => $audioFilePath,
@@ -216,9 +216,14 @@ class AIInterpretationService
                 'base64_size_mb' => round($encodedSize / 1024 / 1024, 2)
             ]);
             
-            // Detectar mime type basado en la extensión
-            $mimeType = $this->getAudioMimeType($fullPath);
-            Log::info('🎵 Tipo MIME detectado', ['mime_type' => $mimeType]);
+            // Detectar mime type basado en el archivo original o el temporal
+            $fileForMimeDetection = !empty($originalFileName) ? $originalFileName : $fullPath;
+            $mimeType = $this->getAudioMimeType($fileForMimeDetection);
+            Log::info('🎵 Tipo MIME detectado', [
+                'mime_type' => $mimeType,
+                'detected_from' => !empty($originalFileName) ? 'original_file' : 'temp_file',
+                'file_used' => $fileForMimeDetection
+            ]);
             
             // Construir prompt específico para análisis de audio
             $analysisPrompt = $this->buildAudioAnalysisPrompt($questionText);
