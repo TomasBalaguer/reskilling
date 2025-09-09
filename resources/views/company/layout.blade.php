@@ -14,19 +14,23 @@
     
     <style>
         :root {
-            --primary-color: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary-color: #8b5cf6;
+            --primary-color: #22c55e;
+            --primary-dark: #16a34a;
+            --primary-gradient: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 50%, #22c55e 100%);
+            --secondary-color: #06b6d4;
             --success-color: #10b981;
             --warning-color: #f59e0b;
             --danger-color: #ef4444;
             --info-color: #06b6d4;
-            --dark-color: #1f2937;
-            --light-gray: #f9fafb;
-            --medium-gray: #6b7280;
-            --border-color: #e5e7eb;
-            --sidebar-bg: #1e293b;
-            --sidebar-hover: #334155;
+            --dark-color: #0f172a;
+            --light-gray: #f8fafc;
+            --medium-gray: #64748b;
+            --border-color: #e2e8f0;
+            --sidebar-bg: #ffffff;
+            --sidebar-border: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
         }
 
         * {
@@ -44,80 +48,133 @@
 
         /* Sidebar Styles */
         .sidebar {
-            background: linear-gradient(135deg, var(--sidebar-bg) 0%, #0f172a 100%);
+            background: var(--sidebar-bg);
             min-height: 100vh;
             position: fixed;
             top: 0;
             left: 0;
             width: 280px;
             z-index: 1000;
-            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+            border-right: 1px solid var(--border-color);
             transition: all 0.3s ease;
         }
 
         .sidebar-header {
-            padding: 2rem 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem 1.5rem 1.5rem 1.5rem;
+            border-bottom: 1px solid var(--sidebar-border);
         }
 
-        .sidebar-header h5 {
-            color: white;
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .logo-container img {
+            max-height: 32px;
+            width: auto;
+            max-width: 180px;
+            object-fit: contain;
+        }
+
+        .company-info {
+            background: var(--light-gray);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .company-info .user-name {
+            color: var(--text-primary);
             font-weight: 600;
-            font-size: 1.2rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .sidebar-header .company-info {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-            margin-top: 1rem;
-        }
-
-        .sidebar-header small {
-            color: #cbd5e1;
             font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .company-info .company-name {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
         }
 
         .sidebar-nav {
-            padding: 1rem 0;
+            padding: 1.5rem 0 2rem 0;
+        }
+
+        .nav-section {
+            margin-bottom: 2rem;
+        }
+
+        .nav-section-title {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 1.5rem 0.75rem 1.5rem;
         }
 
         .nav-item {
-            margin: 0.25rem 1rem;
+            margin: 0.125rem 1rem;
         }
 
         .nav-link {
-            color: #cbd5e1 !important;
-            padding: 0.875rem 1rem;
-            border-radius: 0.5rem;
-            transition: all 0.2s ease;
+            color: var(--text-secondary) !important;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            transition: all 0.15s ease;
             text-decoration: none;
             display: flex;
             align-items: center;
             font-weight: 500;
+            font-size: 0.875rem;
             border: none;
             background: none;
             width: 100%;
             text-align: left;
+            position: relative;
         }
 
         .nav-link:hover {
-            background: var(--sidebar-hover);
-            color: white !important;
-            transform: translateX(4px);
+            background: var(--light-gray);
+            color: var(--text-primary) !important;
+            transform: translateX(2px);
         }
 
         .nav-link.active {
-            background: var(--primary-color);
+            background: var(--primary-gradient);
             color: white !important;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25);
+        }
+
+        .nav-link.active::before {
+            content: '';
+            position: absolute;
+            left: -1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 20px;
+            background: var(--primary-color);
+            border-radius: 0 2px 2px 0;
         }
 
         .nav-link i {
-            width: 20px;
+            width: 18px;
             margin-right: 0.75rem;
-            font-size: 1rem;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }
+
+        .nav-link.logout {
+            color: var(--danger-color) !important;
+            margin-top: 1rem;
+        }
+
+        .nav-link.logout:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color) !important;
         }
 
         /* Main Content */
@@ -129,15 +186,14 @@
 
         .content-header {
             background: white;
-            padding: 2rem 2.5rem;
+            padding: 1.5rem 2rem;
             border-bottom: 1px solid var(--border-color);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
 
         .content-header h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--dark-color);
+            font-size: 1.625rem;
+            font-weight: 600;
+            color: var(--text-primary);
             margin: 0;
         }
 
@@ -216,14 +272,16 @@
         }
 
         .btn-primary {
-            background: var(--primary-color);
+            background: var(--primary-gradient);
             color: white;
+            border: none;
         }
 
         .btn-primary:hover {
             background: var(--primary-dark);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+            color: white;
         }
 
         .btn-success {
@@ -270,7 +328,7 @@
         }
 
         .table tbody tr:hover {
-            background: rgba(99, 102, 241, 0.02);
+            background: rgba(34, 197, 94, 0.02);
         }
 
         /* Badges */
@@ -343,7 +401,7 @@
 
         .form-control:focus, .form-select:focus {
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
         }
 
         /* Responsive */
@@ -394,68 +452,65 @@
     <!-- Sidebar -->
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-header">
+            <!-- Logo -->
+            <div class="logo-container">
+                <img src="{{ asset('images/reskiling-logo.png') }}" 
+                     alt="RE-SKILLING.AI">
+            </div>
+            
             @auth('company')
-                @if(Auth::guard('company')->user()->company->logo_url)
-                    <!-- Company Logo -->
-                    <div class="company-logo mb-3" style="text-align: center;">
-                        <img src="{{ Storage::url(Auth::guard('company')->user()->company->logo_url) }}" 
-                             alt="Logo {{ Auth::guard('company')->user()->company->name }}" 
-                             style="max-height: 60px; max-width: 180px; object-fit: contain;">
-                    </div>
-                @else
-                    <!-- Fallback to text -->
-                    <h5>
-                        <i class="fas fa-building"></i> Panel Empresa
-                    </h5>
-                @endif
-                
                 <div class="company-info">
-                    <small class="d-block">{{ Auth::guard('company')->user()->name }}</small>
-                    <small class="d-block" style="color: #e2e8f0;">{{ Auth::guard('company')->user()->company->name }}</small>
+                    <div class="user-name">{{ Auth::guard('company')->user()->name }}</div>
+                    <div class="company-name">{{ Auth::guard('company')->user()->company->name }}</div>
                 </div>
-            @else
-                <h5>
-                    <i class="fas fa-building"></i> Panel Empresa
-                </h5>
             @endauth
         </div>
         
         <div class="sidebar-nav">
-            <div class="nav-item">
-                <a class="nav-link {{ request()->routeIs('company.dashboard') ? 'active' : '' }}" 
-                   href="{{ route('company.dashboard') }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}">
-                    <i class="fas fa-chart-line"></i> Dashboard
-                </a>
+            <div class="nav-section">
+                <div class="nav-section-title">Principal</div>
+                <div class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('company.dashboard') ? 'active' : '' }}" 
+                       href="{{ route('company.dashboard') }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}">
+                        <i class="fas fa-chart-line"></i> Dashboard
+                    </a>
+                </div>
             </div>
             
-            <div class="nav-item">
-                <a class="nav-link {{ request()->routeIs('company.campaigns*') ? 'active' : '' }}" 
-                   href="{{ route('company.campaigns') }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}">
-                    <i class="fas fa-bullhorn"></i> Campañas
-                </a>
-            </div>
-            
-            <div class="nav-item">
-                <a class="nav-link {{ request()->routeIs('company.responses*') ? 'active' : '' }}" 
-                   href="{{ route('company.responses') }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}">
-                    <i class="fas fa-clipboard-list"></i> Respuestas
-                </a>
+            <div class="nav-section">
+                <div class="nav-section-title">Evaluaciones</div>
+                <div class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('company.campaigns*') ? 'active' : '' }}" 
+                       href="{{ route('company.campaigns') }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}">
+                        <i class="fas fa-bullhorn"></i> Campañas
+                    </a>
+                </div>
+                
+                <div class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('company.responses*') ? 'active' : '' }}" 
+                       href="{{ route('company.responses') }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}">
+                        <i class="fas fa-clipboard-list"></i> Respuestas
+                    </a>
+                </div>
             </div>
 
-            <div class="nav-item">
-                <a class="nav-link {{ request()->routeIs('company.profile*') ? 'active' : '' }}" 
-                   href="{{ route('company.profile.edit') }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}">
-                    <i class="fas fa-building"></i> Perfil de Empresa
-                </a>
-            </div>
-            
-            <div class="nav-item" style="margin-top: 2rem;">
-                <form method="POST" action="{{ route('company.logout') }}">
-                    @csrf
-                    <button type="submit" class="nav-link">
-                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-                    </button>
-                </form>
+            <div class="nav-section">
+                <div class="nav-section-title">Configuración</div>
+                <div class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('company.profile*') ? 'active' : '' }}" 
+                       href="{{ route('company.profile.edit') }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}">
+                        <i class="fas fa-building"></i> Perfil de Empresa
+                    </a>
+                </div>
+                
+                <div class="nav-item">
+                    <form method="POST" action="{{ route('company.logout') }}">
+                        @csrf
+                        <button type="submit" class="nav-link logout">
+                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </nav>

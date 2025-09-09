@@ -91,7 +91,12 @@ class CompanyController extends Controller
         ->where('company_id', $companyId)
         ->findOrFail($campaignId);
 
-        return view('company.campaigns.detail', compact('campaign'));
+        // Paginate invitations separately
+        $invitations = $campaign->invitations()
+            ->orderBy('created_at', 'desc')
+            ->paginate(20, ['*'], 'invitations_page');
+
+        return view('company.campaigns.detail', compact('campaign', 'invitations'));
     }
 
     /**
@@ -470,6 +475,23 @@ class CompanyController extends Controller
         
         return redirect()->back()
             ->with('success', "Campaña {$statusText} exitosamente.");
+    }
+
+    /**
+     * Toggle campaign public access
+     */
+    public function toggleCampaignPublicAccess(Request $request, $campaignId)
+    {
+        $companyId = $request->get('company_id');
+        $campaign = Campaign::where('company_id', $companyId)->findOrFail($campaignId);
+        
+        $newAccess = !$campaign->allow_public_access;
+        $campaign->update(['allow_public_access' => $newAccess]);
+        
+        $accessText = $newAccess ? 'habilitado' : 'deshabilitado';
+        
+        return redirect()->back()
+            ->with('success', "Acceso público {$accessText} exitosamente.");
     }
 
     /**

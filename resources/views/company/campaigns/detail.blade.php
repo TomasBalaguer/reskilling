@@ -4,20 +4,20 @@
 @section('page-title', 'Campaña: ' . $campaign->name)
 
 @section('page-actions')
-    <div class="btn-group" role="group">
+    <div class="d-flex gap-2">
         @if($campaign->responses()->count() === 0)
             <a href="{{ route('company.campaigns.edit', $campaign->id) }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
-               class="btn btn-outline-warning">
-                <i class="fas fa-edit"></i> Editar
+               class="btn btn-primary btn-sm px-3">
+                <i class="fas fa-edit me-2"></i>Editar
             </a>
         @endif
         <a href="{{ route('company.campaigns.export', $campaign->id) }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
-           class="btn btn-outline-success">
-            <i class="fas fa-download"></i> Exportar CSV
+           class="btn btn-success btn-sm px-3">
+            <i class="fas fa-download me-2"></i>Exportar CSV
         </a>
         <a href="{{ route('company.campaigns') }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
-           class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left"></i> Volver
+           class="btn btn-outline-primary btn-sm px-3">
+            <i class="fas fa-arrow-left me-2"></i>Volver
         </a>
     </div>
 @endsection
@@ -116,18 +116,42 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-8">
+                            <!-- Toggle Public Access -->
                             <div class="mb-3">
-                                <label class="form-label"><strong>Enlace Público:</strong></label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" 
-                                           value="{{ config('app.frontend_url') }}/c/{{ $campaign->code }}" 
-                                           id="publicLink" readonly>
-                                    <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('publicLink')">
-                                        <i class="fas fa-copy"></i> Copiar
-                                    </button>
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <label class="form-label mb-0"><strong>Acceso Público:</strong></label>
+                                    <form method="POST" action="{{ route('company.campaigns.toggle-public-access', $campaign->id) }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" class="d-inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="publicAccessSwitch" 
+                                                   {{ $campaign->allow_public_access ? 'checked' : '' }}
+                                                   onchange="this.form.submit()">
+                                            <label class="form-check-label" for="publicAccessSwitch">
+                                                {{ $campaign->allow_public_access ? 'Habilitado' : 'Deshabilitado' }}
+                                            </label>
+                                        </div>
+                                    </form>
                                 </div>
-                                <small class="form-text text-muted">Este enlace puede ser usado por cualquier persona</small>
+                                <small class="form-text text-muted">
+                                    {{ $campaign->allow_public_access ? 'Cualquier persona con el enlace puede acceder' : 'Solo personas invitadas pueden acceder' }}
+                                </small>
                             </div>
+
+                            @if($campaign->allow_public_access)
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Enlace Público:</strong></label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" 
+                                               value="{{ config('app.frontend_url') }}/c/{{ $campaign->code }}" 
+                                               id="publicLink" readonly>
+                                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('publicLink')">
+                                            <i class="fas fa-copy"></i> Copiar
+                                        </button>
+                                    </div>
+                                    <small class="form-text text-muted">Este enlace puede ser usado por cualquier persona</small>
+                                </div>
+                            @endif
                             
                             @if($campaign->access_type === 'email_list')
                                 <div class="mb-3">
@@ -146,23 +170,23 @@
                                 <form method="POST" action="{{ route('company.campaigns.resend-invitations', $campaign->id) }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
                                       style="display: inline-block;">
                                     @csrf
-                                    <button type="submit" class="btn btn-primary mb-2" onclick="return confirm('¿Estás seguro de que quieres reenviar todas las invitaciones?')">
-                                        <i class="fas fa-envelope"></i> Reenviar Invitaciones
+                                    <button type="submit" class="btn btn-outline-primary btn-sm mb-2 px-3" onclick="return confirm('¿Estás seguro de que quieres reenviar todas las invitaciones?')">
+                                        <i class="fas fa-envelope me-2"></i>Reenviar Invitaciones
                                     </button>
                                 </form>
                                 <br>
                             @endif
                             
-                            <div class="btn-group" role="group">
-                                <button class="btn btn-outline-success" onclick="showSingleInviteModal()">
-                                    <i class="fas fa-user-plus"></i> Invitar Persona
+                            <div class="d-flex flex-wrap gap-2">
+                                <button class="btn btn-primary btn-sm px-3" onclick="showSingleInviteModal()">
+                                    <i class="fas fa-user-plus me-2"></i>Invitar Persona
                                 </button>
-                                <button class="btn btn-outline-primary" onclick="showCSVUploadModal()">
-                                    <i class="fas fa-upload"></i> Subir CSV
+                                <button class="btn btn-info btn-sm px-3" onclick="showCSVUploadModal()">
+                                    <i class="fas fa-upload me-2"></i>Subir CSV
                                 </button>
                                 <a href="{{ route('company.campaigns.email-logs', $campaign->id) }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
-                                   class="btn btn-outline-info">
-                                    <i class="fas fa-eye"></i> Ver Logs de Email
+                                   class="btn btn-outline-info btn-sm px-3">
+                                    <i class="fas fa-eye me-2"></i>Ver Logs
                                 </a>
                             </div>
                         </div>
@@ -179,10 +203,18 @@
                 <div class="card">
                     <div class="card-header">
                         <h5 class="mb-0">
-                            <i class="fas fa-envelope"></i> Invitaciones Enviadas ({{ $campaign->invitations->count() }})
+                            <button class="btn btn-link text-decoration-none p-0 w-100 text-start collapsed" 
+                                    type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#invitationsCollapse" 
+                                    aria-expanded="false" 
+                                    aria-controls="invitationsCollapse">
+                                <i class="fas fa-envelope"></i> Invitaciones Enviadas ({{ $campaign->invitations->count() }})
+                                <i class="fas fa-chevron-down float-end mt-1"></i>
+                            </button>
                         </h5>
                     </div>
-                    <div class="card-body">
+                    <div class="collapse" id="invitationsCollapse">
+                        <div class="card-body" style="font-size: 0.875rem;">
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
@@ -197,9 +229,9 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($campaign->invitations as $invitation)
+                                    @foreach($invitations as $invitation)
                                         @php
-                                            $hasResponse = $campaign->responses->where('email', $invitation->email)->first();
+                                            $hasResponse = $campaign->responses->where('respondent_email', $invitation->email)->first();
                                         @endphp
                                         <tr class="{{ $hasResponse ? 'table-success' : ($invitation->status === 'opened' ? '' : 'table-warning') }}">
                                             <td>{{ $loop->iteration }}</td>
@@ -256,6 +288,13 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Pagination -->
+                        @if($invitations->hasPages())
+                            <div class="d-flex justify-content-center mt-3">
+                                {{ $invitations->appends(request()->query())->links() }}
+                            </div>
+                        @endif
                         
                         <!-- Statistics -->
                         <div class="row mt-3">
@@ -293,6 +332,7 @@
                                     <small class="text-muted">Tasa de Respuesta</small>
                                 </div>
                             </div>
+                        </div>
                         </div>
                     </div>
                 </div>

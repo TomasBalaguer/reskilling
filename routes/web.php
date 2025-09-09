@@ -72,6 +72,7 @@ Route::prefix('company')->name('company.')->middleware('company.auth')->group(fu
     Route::post('/campaigns/{id}/add-csv', [App\Http\Controllers\Company\CompanyController::class, 'addCSVInvitations'])->name('campaigns.add-csv');
     Route::get('/campaigns/{id}/email-logs', [App\Http\Controllers\Company\CompanyController::class, 'campaignEmailLogs'])->name('campaigns.email-logs');
     Route::patch('/campaigns/{id}/toggle-status', [App\Http\Controllers\Company\CompanyController::class, 'toggleCampaignStatus'])->name('campaigns.toggle-status');
+    Route::patch('/campaigns/{id}/toggle-public-access', [App\Http\Controllers\Company\CompanyController::class, 'toggleCampaignPublicAccess'])->name('campaigns.toggle-public-access');
     Route::get('/campaigns/{id}/export', [App\Http\Controllers\Company\CompanyController::class, 'exportCampaignData'])->name('campaigns.export');
     
     // Responses

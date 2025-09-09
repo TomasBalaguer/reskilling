@@ -14,19 +14,23 @@
     
     <style>
         :root {
-            --primary-color: #dc2626;
-            --primary-dark: #b91c1c;
-            --secondary-color: #7c3aed;
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
+            --admin-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+            --secondary-color: #8b5cf6;
             --success-color: #10b981;
             --warning-color: #f59e0b;
             --danger-color: #ef4444;
             --info-color: #06b6d4;
-            --dark-color: #1f2937;
-            --light-gray: #f9fafb;
-            --medium-gray: #6b7280;
-            --border-color: #e5e7eb;
-            --sidebar-bg: #7f1d1d;
-            --sidebar-hover: #991b1b;
+            --dark-color: #0f172a;
+            --light-gray: #f8fafc;
+            --medium-gray: #64748b;
+            --border-color: #e2e8f0;
+            --sidebar-bg: #ffffff;
+            --sidebar-border: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
         }
 
         * {
@@ -44,39 +48,49 @@
 
         /* Sidebar Styles */
         .sidebar {
-            background: linear-gradient(135deg, var(--sidebar-bg) 0%, #450a0a 100%);
+            background: white;
             min-height: 100vh;
             position: fixed;
             top: 0;
             left: 0;
             width: 280px;
             z-index: 1000;
-            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.08);
             transition: all 0.3s ease;
+            border-right: 1px solid #f1f5f9;
         }
 
         .sidebar-header {
-            padding: 2rem 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem 1.5rem 1.5rem 1.5rem;
+            border-bottom: 1px solid #f1f5f9;
+            text-align: center;
         }
 
-        .sidebar-header h5 {
-            color: white;
-            font-weight: 600;
-            font-size: 1.2rem;
-            margin-bottom: 0.5rem;
+        .sidebar-header .logo {
+            max-width: 180px;
+            height: auto;
+            margin-bottom: 1rem;
         }
 
-        .sidebar-header .admin-info {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 0.75rem;
-            border-radius: 0.5rem;
+        .sidebar-header .user-info {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 1rem;
+            border-radius: 0.75rem;
             margin-top: 1rem;
+            border: 1px solid #e2e8f0;
         }
 
-        .sidebar-header small {
-            color: #fecaca;
+        .sidebar-header .user-info .name {
+            color: var(--text-primary);
             font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .sidebar-header .user-info .role {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 500;
         }
 
         .sidebar-nav {
@@ -84,12 +98,25 @@
         }
 
         .nav-item {
-            margin: 0.25rem 1rem;
+            margin: 0.25rem 0.75rem;
+        }
+
+        .nav-section {
+            padding: 1rem 0 0.5rem 0;
+        }
+
+        .nav-section-title {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 0 1.5rem 0.5rem 1.5rem;
         }
 
         .nav-link {
-            color: #fecaca !important;
-            padding: 0.875rem 1rem;
+            color: var(--text-secondary) !important;
+            padding: 0.75rem 1.5rem;
             border-radius: 0.5rem;
             transition: all 0.2s ease;
             text-decoration: none;
@@ -100,18 +127,22 @@
             background: none;
             width: 100%;
             text-align: left;
+            margin: 0.125rem 0;
+            font-size: 0.875rem;
         }
 
         .nav-link:hover {
-            background: var(--sidebar-hover);
-            color: white !important;
-            transform: translateX(4px);
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            color: var(--text-primary) !important;
+            border-left: 3px solid var(--primary-color);
+            padding-left: calc(1.5rem - 3px);
         }
 
         .nav-link.active {
-            background: var(--primary-color);
+            background: linear-gradient(135deg, #8b5cf6 10%, #06b6d4 50%, #22c55e 90%);
             color: white !important;
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+            font-weight: 600;
         }
 
         .nav-link i {
@@ -394,53 +425,60 @@
     <!-- Sidebar -->
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <h5>
-                <i class="fas fa-shield-alt"></i> Administración
-            </h5>
+            <img src="{{ asset('images/reskiling-logo.png') }}" alt="RE-SKILLING.AI" class="logo">
+            
             @auth('web')
-                <div class="admin-info">
-                    <small class="d-block">{{ Auth::user()->name }}</small>
-                    <small class="d-block" style="color: #fed7d7;">Administrador del Sistema</small>
+                <div class="user-info">
+                    <div class="name">{{ Auth::user()->name }}</div>
+                    <div class="role">Administrador del Sistema</div>
                 </div>
             @endauth
         </div>
         
         <div class="sidebar-nav">
-            <div class="nav-item">
-                <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" 
-                   href="{{ route('admin.dashboard') }}">
-                    <i class="fas fa-chart-line"></i> Dashboard
-                </a>
+            <div class="nav-section">
+                <div class="nav-section-title">Panel Principal</div>
+                <div class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" 
+                       href="{{ route('admin.dashboard') }}">
+                        <i class="fas fa-chart-line"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Gestión</div>
+                <div class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.companies*') ? 'active' : '' }}" 
+                       href="{{ route('admin.companies') }}">
+                        <i class="fas fa-building"></i> Empresas
+                    </a>
+                </div>
+                
+                <div class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.campaigns*') ? 'active' : '' }}" 
+                       href="{{ route('admin.campaigns') }}">
+                        <i class="fas fa-bullhorn"></i> Campañas
+                    </a>
+                </div>
+                
+                <div class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.responses*') ? 'active' : '' }}" 
+                       href="{{ route('admin.responses') }}">
+                        <i class="fas fa-clipboard-list"></i> Respuestas
+                    </a>
+                </div>
             </div>
             
-            <div class="nav-item">
-                <a class="nav-link {{ request()->routeIs('admin.companies*') ? 'active' : '' }}" 
-                   href="{{ route('admin.companies') }}">
-                    <i class="fas fa-building"></i> Empresas
-                </a>
-            </div>
-            
-            <div class="nav-item">
-                <a class="nav-link {{ request()->routeIs('admin.campaigns*') ? 'active' : '' }}" 
-                   href="{{ route('admin.campaigns') }}">
-                    <i class="fas fa-bullhorn"></i> Campañas
-                </a>
-            </div>
-            
-            <div class="nav-item">
-                <a class="nav-link {{ request()->routeIs('admin.responses*') ? 'active' : '' }}" 
-                   href="{{ route('admin.responses') }}">
-                    <i class="fas fa-clipboard-list"></i> Respuestas
-                </a>
-            </div>
-            
-            <div class="nav-item" style="margin-top: 2rem;">
-                <form method="POST" action="{{ route('admin.logout') }}">
-                    @csrf
-                    <button type="submit" class="nav-link">
-                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-                    </button>
-                </form>
+            <div class="nav-section" style="margin-top: 2rem;">
+                <div class="nav-item">
+                    <form method="POST" action="{{ route('admin.logout') }}">
+                        @csrf
+                        <button type="submit" class="nav-link">
+                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </nav>
