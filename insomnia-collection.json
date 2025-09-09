@@ -1,0 +1,376 @@
+{
+	"_type": "export",
+	"__export_format": 4,
+	"__export_date": "2025-09-08T21:05:00.000Z",
+	"__export_source": "insomnia.desktop.app:v8.6.1",
+	"resources": [
+		{
+			"_id": "req_submit_audio_response",
+			"parentId": "fld_questionnaire_responses",
+			"modified": 1725829140000,
+			"created": 1725829140000,
+			"url": "{{ _.base_url }}/api/campaigns/{{ _.campaign_code }}/questionnaires/2/responses",
+			"name": "Submit Audio Response - REFLECTIVE QUESTIONS",
+			"description": "Enviar respuestas con archivos de audio para cuestionario reflexivo",
+			"method": "POST",
+			"body": {
+				"mimeType": "multipart/form-data",
+				"params": [
+					{
+						"id": "pair_respondent_name",
+						"name": "respondent[name]",
+						"value": "Juan Pérez",
+						"description": "Nombre del candidato",
+						"disabled": false
+					},
+					{
+						"id": "pair_respondent_email", 
+						"name": "respondent[email]",
+						"value": "juan.perez@example.com",
+						"description": "Email del candidato",
+						"disabled": false
+					},
+					{
+						"id": "pair_respondent_age",
+						"name": "respondent[age]",
+						"value": "28",
+						"description": "Edad del candidato",
+						"disabled": false
+					},
+					{
+						"id": "pair_q1_type",
+						"name": "responses[q1][type]",
+						"value": "audio",
+						"description": "Tipo de respuesta Q1",
+						"disabled": false
+					},
+					{
+						"id": "pair_q1_duration",
+						"name": "responses[q1][audio_duration]", 
+						"value": "45.2",
+						"description": "Duración audio Q1 en segundos",
+						"disabled": false
+					},
+					{
+						"id": "pair_q2_type",
+						"name": "responses[q2][type]",
+						"value": "audio",
+						"description": "Tipo de respuesta Q2",
+						"disabled": false
+					},
+					{
+						"id": "pair_q2_duration",
+						"name": "responses[q2][audio_duration]",
+						"value": "38.7",
+						"description": "Duración audio Q2 en segundos",
+						"disabled": false
+					},
+					{
+						"id": "pair_q3_type",
+						"name": "responses[q3][type]",
+						"value": "audio",
+						"description": "Tipo de respuesta Q3",
+						"disabled": false
+					},
+					{
+						"id": "pair_q3_duration",
+						"name": "responses[q3][audio_duration]",
+						"value": "52.1",
+						"description": "Duración audio Q3 en segundos", 
+						"disabled": false
+					},
+					{
+						"id": "pair_q4_type",
+						"name": "responses[q4][type]",
+						"value": "audio",
+						"description": "Tipo de respuesta Q4",
+						"disabled": false
+					},
+					{
+						"id": "pair_q4_duration",
+						"name": "responses[q4][audio_duration]",
+						"value": "67.8",
+						"description": "Duración audio Q4 en segundos",
+						"disabled": false
+					},
+					{
+						"id": "pair_q5_type",
+						"name": "responses[q5][type]",
+						"value": "audio",
+						"description": "Tipo de respuesta Q5",
+						"disabled": false
+					},
+					{
+						"id": "pair_q5_duration",
+						"name": "responses[q5][audio_duration]",
+						"value": "41.3",
+						"description": "Duración audio Q5 en segundos",
+						"disabled": false
+					},
+					{
+						"id": "pair_q6_type",
+						"name": "responses[q6][type]",
+						"value": "audio",
+						"description": "Tipo de respuesta Q6",
+						"disabled": false
+					},
+					{
+						"id": "pair_q6_duration",
+						"name": "responses[q6][audio_duration]",
+						"value": "55.6",
+						"description": "Duración audio Q6 en segundos",
+						"disabled": false
+					},
+					{
+						"id": "pair_q7_type",
+						"name": "responses[q7][type]",
+						"value": "audio",
+						"description": "Tipo de respuesta Q7",
+						"disabled": false
+					},
+					{
+						"id": "pair_q7_duration",
+						"name": "responses[q7][audio_duration]",
+						"value": "72.4",
+						"description": "Duración audio Q7 en segundos",
+						"disabled": false
+					},
+					{
+						"id": "pair_audio_q1",
+						"name": "audio_files[q1]",
+						"value": "",
+						"description": "Archivo de audio Q1 - Autoconocimiento",
+						"type": "file",
+						"disabled": false
+					},
+					{
+						"id": "pair_audio_q2",
+						"name": "audio_files[q2]",
+						"value": "",
+						"description": "Archivo de audio Q2 - Resiliencia",
+						"type": "file",
+						"disabled": false
+					},
+					{
+						"id": "pair_audio_q3",
+						"name": "audio_files[q3]",
+						"value": "",
+						"description": "Archivo de audio Q3 - Pensamiento crítico",
+						"type": "file",
+						"disabled": false
+					},
+					{
+						"id": "pair_audio_q4",
+						"name": "audio_files[q4]",
+						"value": "",
+						"description": "Archivo de audio Q4 - Liderazgo",
+						"type": "file",
+						"disabled": false
+					},
+					{
+						"id": "pair_audio_q5",
+						"name": "audio_files[q5]",
+						"value": "",
+						"description": "Archivo de audio Q5 - Creatividad",
+						"type": "file",
+						"disabled": false
+					},
+					{
+						"id": "pair_audio_q6",
+						"name": "audio_files[q6]",
+						"value": "",
+						"description": "Archivo de audio Q6 - Motivación",
+						"type": "file",
+						"disabled": false
+					},
+					{
+						"id": "pair_audio_q7",
+						"name": "audio_files[q7]",
+						"value": "",
+						"description": "Archivo de audio Q7 - Empatía",
+						"type": "file",
+						"disabled": false
+					}
+				]
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"id": "pair_accept",
+					"name": "Accept",
+					"value": "application/json",
+					"description": ""
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1725829140000,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global"
+		},
+		{
+			"_id": "req_get_campaign_by_code",
+			"parentId": "fld_campaign_endpoints",
+			"modified": 1725829140000,
+			"created": 1725829140000,
+			"url": "{{ _.base_url }}/api/campaigns/{{ _.campaign_code }}",
+			"name": "Get Campaign by Code",
+			"description": "Obtener información de campaña por código",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Accept",
+					"value": "application/json",
+					"disabled": false
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1725829140000,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global"
+		},
+		{
+			"_id": "req_get_response_status",
+			"parentId": "fld_analysis_endpoints",
+			"modified": 1725829140000,
+			"created": 1725829140000,
+			"url": "{{ _.base_url }}/api/responses/{{ _.response_id }}/status",
+			"name": "Get Response Status",
+			"description": "Consultar estado y progreso del procesamiento de respuesta",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Accept",
+					"value": "application/json",
+					"disabled": false
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1725829140000,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global"
+		},
+		{
+			"_id": "req_get_response_analysis",
+			"parentId": "fld_analysis_endpoints",
+			"modified": 1725829140000,
+			"created": 1725829140000,
+			"url": "{{ _.base_url }}/api/responses/{{ _.response_id }}/analysis",
+			"name": "Get Response Analysis",
+			"description": "Obtener análisis completo cuando esté terminado",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Accept",
+					"value": "application/json",
+					"disabled": false
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1725829139000,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global"
+		},
+		{
+			"_id": "fld_campaign_endpoints",
+			"parentId": "wrk_main",
+			"modified": 1725829140000,
+			"created": 1725829140000,
+			"name": "Campaign Endpoints",
+			"description": "Endpoints relacionados with campaigns",
+			"environment": {},
+			"environmentPropertyOrder": null,
+			"metaSortKey": -1725829140000
+		},
+		{
+			"_id": "fld_questionnaire_responses",
+			"parentId": "wrk_main",
+			"modified": 1725829140000,
+			"created": 1725829140000,
+			"name": "Questionnaire Responses",
+			"description": "Endpoints para envío de respuestas",
+			"environment": {},
+			"environmentPropertyOrder": null,
+			"metaSortKey": -1725829139000
+		},
+		{
+			"_id": "fld_analysis_endpoints",
+			"parentId": "wrk_main",
+			"modified": 1725829140000,
+			"created": 1725829140000,
+			"name": "Analysis Endpoints",
+			"description": "Endpoints para consultar análisis y estado",
+			"environment": {},
+			"environmentPropertyOrder": null,
+			"metaSortKey": -1725829138000
+		},
+		{
+			"_id": "wrk_main",
+			"parentId": null,
+			"modified": 1725829140000,
+			"created": 1725829140000,
+			"name": "Reskiling Platform API",
+			"description": "API endpoints para la plataforma de reskiling B2B",
+			"scope": "collection"
+		},
+		{
+			"_id": "env_base",
+			"parentId": "wrk_main",
+			"modified": 1725829140000,
+			"created": 1725829140000,
+			"name": "Base Environment",
+			"data": {
+				"base_url": "http://localhost:8001",
+				"campaign_code": "nrysYjqe",
+				"questionnaire_id": "2",
+				"invitation_token": "abc123def456",
+				"response_id": "1"
+			},
+			"dataPropertyOrder": {
+				"&": [
+					"base_url",
+					"campaign_code",
+					"questionnaire_id", 
+					"invitation_token",
+					"response_id"
+				]
+			},
+			"color": null,
+			"isPrivate": false,
+			"metaSortKey": 1725829140000
+		},
+		{
+			"_id": "jar_cookies",
+			"parentId": "wrk_main",
+			"modified": 1725829140000,
+			"created": 1725829140000,
+			"name": "Default Jar",
+			"cookies": []
+		}
+	]
+}

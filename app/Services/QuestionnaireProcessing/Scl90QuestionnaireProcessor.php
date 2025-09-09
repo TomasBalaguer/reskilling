@@ -1,0 +1,580 @@
+<?php
+
+namespace App\Services\QuestionnaireProcessing;
+
+use App\Services\QuestionnaireProcessing\Traits\HasQuestionnairePrompt;
+
+/**
+ * Processor for SCL-90 (Symptom Checklist-90) questionnaire
+ */
+class Scl90QuestionnaireProcessor extends BaseQuestionnaireProcessor
+{
+    use HasQuestionnairePrompt;
+
+    /**
+     * The questionnaire type identifier
+     *
+     * @var string
+     */
+    protected $type = 'SCL90';
+
+    protected function normalizeGender(?string $gender): string
+    {
+        // Convert various gender formats to M or F for normative comparisons
+        if ($gender === null) {
+            return 'M'; // Default to male if no gender provided
+        }
+
+        $gender = strtoupper(trim($gender));
+
+        if (in_array($gender, ['M', 'MASCULINO', 'MALE', 'H', 'HOMBRE', 'V', 'VARON'])) {
+            return 'M';
+        }
+
+        return 'F'; // Default to female for any other value
+    }
+
+    /**
+     * Calculate scores and interpretations based on questionnaire responses
+     *
+     * @param  array  $responses  Raw responses from the questionnaire
+     * @param  array  $patientData  Patient demographic data (age, gender, etc.)
+     * @param  array  $result  Optional existing result to extend
+     * @return array Processed results with scores, interpretations, and summaries
+     */
+    public function calculateScores(array $responses, array $patientData = [], array $result = []): array
+    {
+        // Add patient data to results
+        $result = $this->addPatientData($result, $patientData);
+
+        // Verify we have sufficient responses
+        if (empty($responses) || ! isset($responses['sintomas'])) {
+            $result['summary'] = 'No se proporcionaron respuestas suficientes para el cuestionario SCL-90.';
+
+            return $result;
+        }
+
+        // Dimensiones del SCL-90
+        $dimensions = [
+            'somatizacion' => ['q1', 'q4', 'q12', 'q27', 'q40', 'q42', 'q48', 'q49', 'q52', 'q53', 'q56', 'q58'],
+            'obsesiones' => ['q3', 'q9', 'q10', 'q28', 'q38', 'q45', 'q46', 'q51', 'q55', 'q65'],
+            'sensibilidad_interpersonal' => ['q6', 'q21', 'q34', 'q36', 'q37', 'q41', 'q61', 'q69', 'q73'],
+            'depresion' => ['q5', 'q14', 'q15', 'q20', 'q22', 'q26', 'q29', 'q30', 'q31', 'q32', 'q54', 'q71', 'q79'],
+            'ansiedad' => ['q2', 'q17', 'q23', 'q33', 'q39', 'q57', 'q72', 'q78', 'q80', 'q86'],
+            'hostilidad' => ['q11', 'q24', 'q63', 'q67', 'q74', 'q81'],
+            'ansiedad_fobica' => ['q13', 'q25', 'q47', 'q50', 'q70', 'q75', 'q82'],
+            'ideacion_paranoide' => ['q8', 'q18', 'q43', 'q68', 'q76', 'q83'],
+            'psicoticismo' => ['q7', 'q16', 'q35', 'q62', 'q77', 'q84', 'q85', 'q87', 'q88', 'q90'],
+            'items_adicionales' => ['q19', 'q44', 'q59', 'q60', 'q64', 'q66', 'q89'],
+        ];
+
+        // Obtain demographic information
+        $gender = isset($patientData['gender']) ? $patientData['gender'] :
+                 (isset($responses['datos_personales']['sexo']['answer']) ? $responses['datos_personales']['sexo']['answer'] : null);
+
+        $education = isset($responses['datos_personales']['educacion']['answer']) ? $responses['datos_personales']['educacion']['answer'] : null;
+        $maritalStatus = isset($responses['datos_personales']['estado_civil']['answer']) ? $responses['datos_personales']['estado_civil']['answer'] : null;
+        $occupation = isset($responses['datos_personales']['ocupacion']['answer']) ? $responses['datos_personales']['ocupacion']['answer'] : null;
+
+        // Normalize gender
+        $genderForNorms = $this->normalizeGender($gender);
+
+        // Map education codes to full descriptions
+        $educationMap = [
+            'PI' => 'Primario incompleto',
+            'PC' => 'Primario completo',
+            'SI' => 'Secundario incompleto',
+            'SC' => 'Secundario completo',
+            'TI' => 'Terciario incompleto',
+            'TC' => 'Terciario completo',
+            'UI' => 'Universitario incompleto',
+            'UC' => 'Universitario completo',
+        ];
+
+        // Map marital status codes to full descriptions
+        $maritalStatusMap = [
+            'S' => 'Soltero/a',
+            'C' => 'Casado/a',
+            'D' => 'Divorciado/a',
+            'SP' => 'Separado/a',
+            'V' => 'Viudo/a',
+            'P' => 'En pareja',
+        ];
+
+        $educationDescription = isset($educationMap[$education]) ? $educationMap[$education] : $education;
+        $maritalStatusDescription = isset($maritalStatusMap[$maritalStatus]) ? $maritalStatusMap[$maritalStatus] : $maritalStatus;
+
+        // Calculate scores for each dimension
+        $scores = [];
+        $totalItems = 0;
+        $sumTotal = 0;
+
+        foreach ($dimensions as $dimension => $items) {
+            $sum = 0;
+            $validItems = 0;
+
+            foreach ($items as $item) {
+                if (isset($responses['sintomas'][$item]['answer'])) {
+                    $sum += $responses['sintomas'][$item]['answer'];
+                    $validItems++;
+                    $sumTotal += $responses['sintomas'][$item]['answer'];
+                    $totalItems++;
+                }
+            }
+
+            $scores[$dimension] = [
+                'raw_score' => $sum,
+                'item_count' => $validItems,
+                'average' => $validItems > 0 ? round($sum / $validItems, 2) : 0,
+            ];
+        }
+
+        // Calculate global indices
+        $GSI = $totalItems > 0 ? round($sumTotal / $totalItems, 2) : 0; // Global Severity Index
+        $PST = 0; // Positive Symptom Total
+
+        // Count positive symptoms (responses > 0)
+        foreach ($responses['sintomas'] as $item) {
+            if (isset($item['answer']) && $item['answer'] > 0) {
+                $PST++;
+            }
+        }
+
+        // PSDI - Positive Symptom Distress Index
+        $PSDI = $PST > 0 ? round($sumTotal / $PST, 2) : 0;
+
+        // Normative data for adults
+        $adultNorms = [
+            'F' => [ // Women
+                'somatizacion' => ['mean' => 0.85, 'sd' => 0.62],
+                'obsesiones' => ['mean' => 1.12, 'sd' => 0.70],
+                'sensibilidad_interpersonal' => ['mean' => 0.85, 'sd' => 0.63],
+                'depresion' => ['mean' => 1.05, 'sd' => 0.69],
+                'ansiedad' => ['mean' => 0.96, 'sd' => 0.64],
+                'hostilidad' => ['mean' => 0.80, 'sd' => 0.66],
+                'ansiedad_fobica' => ['mean' => 0.41, 'sd' => 0.51],
+                'ideacion_paranoide' => ['mean' => 0.90, 'sd' => 0.78],
+                'psicoticismo' => ['mean' => 0.52, 'sd' => 0.49],
+                'GSI' => ['mean' => 0.93, 'sd' => 0.58], // Updated from 0.16/0.09
+                'PST' => ['mean' => 38.78, 'sd' => 16.71],
+                'PSDI' => ['mean' => 1.90, 'sd' => 0.48],
+            ],
+            'M' => [ // Men
+                'somatizacion' => ['mean' => 0.57, 'sd' => 0.48],
+                'obsesiones' => ['mean' => 1.0, 'sd' => 0.69],
+                'sensibilidad_interpersonal' => ['mean' => 0.69, 'sd' => 0.59],
+                'depresion' => ['mean' => 0.81, 'sd' => 0.59],
+                'ansiedad' => ['mean' => 0.74, 'sd' => 0.56],
+                'hostilidad' => ['mean' => 0.78, 'sd' => 0.65],
+                'ansiedad_fobica' => ['mean' => 0.29, 'sd' => 0.39],
+                'ideacion_paranoide' => ['mean' => 0.85, 'sd' => 0.71],
+                'psicoticismo' => ['mean' => 0.46, 'sd' => 0.47],
+                'GSI' => ['mean' => 0.59, 'sd' => 0.40], // Updated from 0.13/0.07
+                'PST' => ['mean' => 33.82, 'sd' => 17.05],
+                'PSDI' => ['mean' => 1.81, 'sd' => 0.45],
+            ],
+        ];
+
+        // Calculate T-scores using formula T = (Raw - Mean) × 10 / SD + 50
+        $tScores = [];
+        foreach ($scores as $dimension => $score) {
+            if ($dimension !== 'items_adicionales' && isset($adultNorms[$genderForNorms][$dimension])) {
+                $norm = $adultNorms[$genderForNorms][$dimension];
+                $tScore = (($score['average'] - $norm['mean']) * 10 / $norm['sd']) + 50;
+                $tScores[$dimension] = round($tScore, 1);
+            }
+        }
+
+        // Calculate T-scores for global indices correctly
+        // GSI should use GSI value (not average of all items)
+        $tScores['GSI'] = round(((($GSI - $adultNorms[$genderForNorms]['GSI']['mean']) * 10) / $adultNorms[$genderForNorms]['GSI']['sd']) + 50, 1);
+        $tScores['PST'] = round(((($PST - $adultNorms[$genderForNorms]['PST']['mean']) * 10) / $adultNorms[$genderForNorms]['PST']['sd']) + 50, 1);
+        $tScores['PSDI'] = round(((($PSDI - $adultNorms[$genderForNorms]['PSDI']['mean']) * 10) / $adultNorms[$genderForNorms]['PSDI']['sd']) + 50, 1);
+
+        // Interpretations based on T-score ranges
+        $interpretations = $this->getScl90Interpretations($tScores, $genderForNorms, $PST, $PSDI);
+        // Generate clinical summary
+        $summary = $this->generateScl90Summary($tScores, $interpretations, $genderForNorms, $PST, $PSDI, $education, $educationDescription, $responses);
+        $responsesSintomas = [];
+        if (isset($responses['sintomas'])) {
+            $respuestas = [
+                0 => 'Nada',
+                1 => 'Muy poco',
+                2 => 'Poco',
+                3 => 'Bastante',
+                4 => 'Mucho',
+            ];
+            foreach ($responses['sintomas'] as $key => $sintoma) { 
+                $responsesSintomas[] = [
+                    'id' => $key,
+                    'question' => $sintoma['question'],
+                    'answer' => $respuestas[$sintoma['answer']],
+                ];
+            }
+        }
+        // Prepare final result
+        $result['scores'] = $scores;
+        $result['t_scores'] = $tScores;
+        $result['indices'] = [
+            'GSI' => $GSI,
+            'PST' => $PST,
+            'PSDI' => $PSDI,
+        ];
+        $result['gender_used'] = $genderForNorms;
+        $result['demographic_data'] = [
+            'gender' => [
+                'code' => $gender,
+                'description' => $genderForNorms === 'M' ? 'Masculino' : 'Femenino',
+            ],
+            'education' => [
+                'code' => $education,
+                'description' => $educationDescription,
+            ],
+            'marital_status' => [
+                'code' => $maritalStatus,
+                'description' => $maritalStatusDescription,
+            ],
+            'occupation' => $occupation,
+        ];
+        $result['interpretations'] = $interpretations;
+        $result['summary'] = $summary;
+        $result['scoring_type'] = 'SCL90';
+        $result['questionnaire_name'] = 'Listado de Síntomas SCL-90-R';
+        $result['responses_sintomas'] = $responsesSintomas;
+
+        return $result;
+    }
+
+    /**
+     * Generate interpretations for SCL-90 T-scores
+     */
+    private function getScl90Interpretations($tScores, $genderForNorms, $PST, $PSDI): array
+    {
+        $interpretations = [];
+        $dimensionNames = [
+            'somatizacion' => 'Somatizaciones',
+            'obsesiones' => 'Obsesiones y compulsiones',
+            'sensibilidad_interpersonal' => 'Sensibilidad interpersonal',
+            'depresion' => 'Depresión',
+            'ansiedad' => 'Ansiedad',
+            'hostilidad' => 'Hostilidad',
+            'ansiedad_fobica' => 'Ansiedad fóbica',
+            'ideacion_paranoide' => 'Ideación paranoide',
+            'psicoticismo' => 'Psicoticismo',
+        ];
+
+        foreach ($tScores as $dimension => $tScore) {
+            if (array_key_exists($dimension, $dimensionNames)) {
+                if ($tScore >= 80) {
+                    $interpretations[$dimension] = 'Nivel muy elevado de '.strtolower($dimensionNames[$dimension]).' (T='.$tScore.').';
+                } elseif ($tScore >= 70) {
+                    $interpretations[$dimension] = 'Nivel elevado de '.strtolower($dimensionNames[$dimension]).' (T='.$tScore.').';
+                } elseif ($tScore >= 65) {
+                    $interpretations[$dimension] = 'Presencia de '.strtolower($dimensionNames[$dimension]).' por encima del promedio (T='.$tScore.').';
+                } elseif ($tScore >= 60) {
+                    $interpretations[$dimension] = 'Tendencia a presentar '.strtolower($dimensionNames[$dimension]).' (T='.$tScore.').';
+                } elseif ($tScore >= 40) {
+                    $interpretations[$dimension] = 'Nivel promedio de '.strtolower($dimensionNames[$dimension]).' (T='.$tScore.').';
+                } else {
+                    $interpretations[$dimension] = 'Nivel bajo de '.strtolower($dimensionNames[$dimension]).' (T='.$tScore.').';
+                }
+            }
+        }
+
+        // Interpretations for global indices
+        if ($tScores['GSI'] >= 63) {
+            $interpretations['GSI'] = 'El índice de severidad global (GSI) indica un nivel de malestar psicológico significativo (T='.$tScores['GSI'].').';
+        } else {
+            $interpretations['GSI'] = 'El índice de severidad global (GSI) no indica malestar psicológico significativo (T='.$tScores['GSI'].').';
+        }
+
+        // PST interpretation by gender
+        if (($genderForNorms === 'M' && $PST <= 3) || ($genderForNorms === 'F' && $PST <= 4)) {
+            $interpretations['PST'] = 'El total de síntomas positivos (PST='.$PST.') podría indicar una tendencia a mostrarse libre de problemas psicológicos (imagen positiva).';
+        } elseif (($genderForNorms === 'M' && $PST >= 50) || ($genderForNorms === 'F' && $PST >= 60)) {
+            $interpretations['PST'] = 'El total de síntomas positivos (PST='.$PST.') podría indicar una tendencia a exagerar sus patologías.';
+        } else {
+            $interpretations['PST'] = 'El total de síntomas positivos (PST='.$PST.') se encuentra dentro de rangos normales.';
+        }
+
+        // PSDI interpretation
+        if ($PSDI <= 1.00 && $PST < 3) {
+            $interpretations['PSDI'] = 'El índice de malestar positivo (PSDI='.$PSDI.') sugiere una tendencia a mostrarse libre de problemas psicológicos.';
+        } elseif ($PSDI >= 3.20) {
+            $interpretations['PSDI'] = 'El índice de malestar positivo (PSDI='.$PSDI.') sugiere un estilo de respuesta caracterizado por dramatismo.';
+        } elseif ($PSDI >= 3.50) {
+            $interpretations['PSDI'] = 'El índice de malestar positivo (PSDI='.$PSDI.') sugiere un estilo de respuesta caracterizado por extremo dramatismo.';
+        } else {
+            $interpretations['PSDI'] = 'El índice de malestar positivo (PSDI='.$PSDI.') se encuentra dentro de rangos normales.';
+        }
+
+        return $interpretations;
+    }
+
+    /**
+     * Generate a clinical summary for SCL-90 results
+     */
+    private function generateScl90Summary($tScores, $interpretations, $genderForNorms, $PST, $PSDI, $education, $educationDescription, $responses): string
+    {
+        $dimensionNames = [
+            'somatizacion' => 'Somatizaciones',
+            'obsesiones' => 'Obsesiones y compulsiones',
+            'sensibilidad_interpersonal' => 'Sensibilidad interpersonal',
+            'depresion' => 'Depresión',
+            'ansiedad' => 'Ansiedad',
+            'hostilidad' => 'Hostilidad',
+            'ansiedad_fobica' => 'Ansiedad fóbica',
+            'ideacion_paranoide' => 'Ideación paranoide',
+            'psicoticismo' => 'Psicoticismo',
+        ];
+
+        // Identify dimensions with elevated scores (T>=63)
+        $elevatedDimensions = [];
+        foreach ($tScores as $dimension => $tScore) {
+            if ($tScore >= 63 && array_key_exists($dimension, $dimensionNames)) {
+                $elevatedDimensions[] = $dimensionNames[$dimension];
+            }
+        }
+
+
+        $summary = '';
+
+        if ($tScores['GSI'] >= 63) {
+            $summary = 'El perfil muestra un nivel de malestar psicológico significativo (GSI T='.$tScores['GSI'].'), ';
+            if (! empty($elevatedDimensions)) {
+                $summary .= 'con elevaciones importantes en: '.implode(', ', $elevatedDimensions).'. ';
+            } else {
+                $summary .= 'aunque sin elevaciones significativas en dimensiones específicas. ';
+            }
+        } else {
+            $summary = 'El perfil no muestra un nivel de malestar psicológico significativo (GSI T='.$tScores['GSI'].'), ';
+            if (! empty($elevatedDimensions)) {
+                $summary .= 'aunque se observan elevaciones en: '.implode(', ', $elevatedDimensions).'. ';
+            } else {
+                $summary .= 'sin elevaciones significativas en dimensiones específicas. ';
+            }
+        }
+
+        // Include information about response style
+        if (($genderForNorms === 'M' && $PST <= 3) || ($genderForNorms === 'F' && $PST <= 4)) {
+            $summary .= 'El patrón de respuestas podría indicar minimización de síntomas o una tendencia a mostrarse libre de problemas. ';
+        } elseif (($genderForNorms === 'M' && $PST >= 50) || ($genderForNorms === 'F' && $PST >= 60)) {
+            $summary .= 'El patrón de respuestas podría indicar una tendencia a exagerar síntomas o a dramatizar el malestar. ';
+        }
+
+        // Possible influence of education level
+        if ($education) {
+            $summary .= 'Considerando su nivel educativo ('.$educationDescription.'), ';
+
+            if (in_array($education, ['PI', 'PC'])) {
+                $summary .= 'es importante tener en cuenta posibles limitaciones en la comprensión de algunos ítems. ';
+            } elseif (in_array($education, ['TI', 'TC', 'UI', 'UC'])) {
+                $summary .= 'se esperaría una adecuada comprensión de los ítems y capacidad de introspección. ';
+            }
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Build the questionnaire-specific prompt section for AI interpretation
+     *
+     * @param  array  $results  Results from the calculateScores method
+     * @return string Formatted prompt section
+     */
+    public function buildPromptSection(array $questionnaireResults): string
+    {
+        $promptSection = '';
+
+        $dimensions = [
+            'somatizacion' => ['q1', 'q4', 'q12', 'q27', 'q40', 'q42', 'q48', 'q49', 'q52', 'q53', 'q56', 'q58'],
+            'obsesiones' => ['q3', 'q9', 'q10', 'q28', 'q38', 'q45', 'q46', 'q51', 'q55', 'q65'],
+            'sensibilidad_interpersonal' => ['q6', 'q21', 'q34', 'q36', 'q37', 'q41', 'q61', 'q69', 'q73'],
+            'depresion' => ['q5', 'q14', 'q15', 'q20', 'q22', 'q26', 'q29', 'q30', 'q31', 'q32', 'q54', 'q71', 'q79'],
+            'ansiedad' => ['q2', 'q17', 'q23', 'q33', 'q39', 'q57', 'q72', 'q78', 'q80', 'q86'],
+            'hostilidad' => ['q11', 'q24', 'q63', 'q67', 'q74', 'q81'],
+            'ansiedad_fobica' => ['q13', 'q25', 'q47', 'q50', 'q70', 'q75', 'q82'],
+            'ideacion_paranoide' => ['q8', 'q18', 'q43', 'q68', 'q76', 'q83'],
+            'psicoticismo' => ['q7', 'q16', 'q35', 'q62', 'q77', 'q84', 'q85', 'q87', 'q88', 'q90'],
+            'items_adicionales' => ['q19', 'q44', 'q59', 'q60', 'q64', 'q66', 'q89'],
+        ];
+        // Definir nombres de dimensiones
+        $dimensionNames = [
+            'somatizacion' => 'Somatizaciones (SOM)',
+            'obsesiones' => 'Obsesiones y compulsiones (OBS)',
+            'sensibilidad_interpersonal' => 'Sensibilidad interpersonal (SI)',
+            'depresion' => 'Depresión (DEP)',
+            'ansiedad' => 'Ansiedad (ANS)',
+            'hostilidad' => 'Hostilidad (HOS)',
+            'ansiedad_fobica' => 'Ansiedad fóbica (FOB)',
+            'ideacion_paranoide' => 'Ideación paranoide (PAR)',
+            'psicoticismo' => 'Psicoticismo (PSIC)',
+        ];
+        // Añadir información demográfica relevante para la interpretación
+        if (isset($questionnaireResults['demographic_data'])) {
+            $promptSection .= "### Contexto demográfico para interpretación:\n";
+
+            if (isset($questionnaireResults['demographic_data']['gender'])) {
+                $promptSection .= '- **Género**: '.$questionnaireResults['demographic_data']['gender']['description']."\n";
+            }
+
+            if (isset($questionnaireResults['demographic_data']['education'])) {
+                $promptSection .= '- **Nivel educativo**: '.$questionnaireResults['demographic_data']['education']['description']."\n";
+            }
+
+            if (isset($questionnaireResults['demographic_data']['marital_status'])) {
+                $promptSection .= '- **Estado civil**: '.$questionnaireResults['demographic_data']['marital_status']['description']."\n";
+            }
+
+            if (isset($questionnaireResults['demographic_data']['occupation'])) {
+                $promptSection .= '- **Ocupación**: '.$questionnaireResults['demographic_data']['occupation']."\n";
+            }
+
+            $promptSection .= "\n";
+        }
+
+        // Añadir puntuaciones de dimensiones sintomáticas con sus valores T
+        if (isset($questionnaireResults['scores']) && ! empty($questionnaireResults['scores'])) {
+            $promptSection .= "### Dimensiones sintomáticas:\n";
+
+            foreach ($questionnaireResults['scores'] as $dimension => $score) {
+                if ($dimension !== 'items_adicionales' && is_array($score)) {
+                    $tScore = isset($questionnaireResults['t_scores'][$dimension]) ? $questionnaireResults['t_scores'][$dimension] : 'N/A';
+                    $dimensionLabel = isset($dimensionNames[$dimension]) ? $dimensionNames[$dimension] : ucfirst(str_replace('_', ' ', $dimension));
+
+                    $promptSection .= '- **'.$dimensionLabel.'**: ';
+                    $promptSection .= 'Puntaje bruto: '.$score['raw_score'].', ';
+                    $promptSection .= 'Promedio: '.$score['average'].', ';
+                    $promptSection .= 'T-score: '.$tScore;
+
+                    if (isset($questionnaireResults['interpretation'][$dimension])) {
+                        $promptSection .= "\n  - ".$questionnaireResults['interpretation'][$dimension];
+                    }
+
+                    $promptSection .= "\n";
+                }
+            }
+            $promptSection .= "\n";
+        }
+
+        // Añadir items adicionales
+        if (isset($questionnaireResults['scores']['items_adicionales'])) {
+            $promptSection .= "### Ítems adicionales:\n";
+            $promptSection .= '- Puntaje bruto: '.$questionnaireResults['scores']['items_adicionales']['raw_score'].', ';
+            $promptSection .= 'Promedio: '.$questionnaireResults['scores']['items_adicionales']['average']."\n\n";
+
+            // Si hay respuestas individuales a los ítems adicionales, mostrarlas
+            $additionalItems = [
+                'q19' => 'Poco apetito',
+                'q44' => 'Problemas para dormir',
+                'q59' => 'Pensamientos acerca de la muerte',
+                'q60' => 'Comer en exceso',
+                'q64' => 'Despertarse muy temprano',
+                'q66' => 'Sueño intranquilo',
+                'q89' => 'Sentimientos de culpa',
+            ];
+
+            if (isset($questionnaireResults['responses']) && isset($questionnaireResults['responses']['sintomas'])) {
+                $promptSection .= "Items adicionales destacados:\n";
+                foreach ($additionalItems as $key => $label) {
+                    if (isset($questionnaireResults['responses']['sintomas'][$key]) &&
+                        $questionnaireResults['responses']['sintomas'][$key]['answer'] >= 2) {
+                        $value = $questionnaireResults['responses']['sintomas'][$key]['answer'];
+                        $valueText = $value == 2 ? 'Poco' : ($value == 3 ? 'Bastante' : 'Mucho');
+                        $promptSection .= '- '.$label.': '.$valueText."\n";
+                    }
+                }
+                $promptSection .= "\n";
+            }
+        }
+
+        // Añadir índices globales con sus valores T
+        if (isset($questionnaireResults['indices']) && ! empty($questionnaireResults['indices'])) {
+            $promptSection .= "### Índices globales:\n";
+
+            if (isset($questionnaireResults['indices']['GSI'])) {
+                $tScore = isset($questionnaireResults['t_scores']['GSI']) ? $questionnaireResults['t_scores']['GSI'] : 'N/A';
+                $promptSection .= '- **Índice de Severidad Global (GSI)**: '.
+                    $questionnaireResults['indices']['GSI'].' (T-score: '.$tScore.")\n";
+
+                if (isset($questionnaireResults['interpretation']['GSI'])) {
+                    $promptSection .= '  - '.$questionnaireResults['interpretation']['GSI']."\n";
+                }
+            }
+
+            if (isset($questionnaireResults['indices']['PST'])) {
+                $tScore = isset($questionnaireResults['t_scores']['PST']) ? $questionnaireResults['t_scores']['PST'] : 'N/A';
+                $promptSection .= '- **Total de Síntomas Positivos (PST)**: '.
+                    $questionnaireResults['indices']['PST'].' (T-score: '.$tScore.")\n";
+
+                if (isset($questionnaireResults['interpretation']['PST'])) {
+                    $promptSection .= '  - '.$questionnaireResults['interpretation']['PST']."\n";
+                }
+            }
+
+            if (isset($questionnaireResults['indices']['PSDI'])) {
+                $tScore = isset($questionnaireResults['t_scores']['PSDI']) ? $questionnaireResults['t_scores']['PSDI'] : 'N/A';
+                $promptSection .= '- **Índice de Malestar Sintomático Positivo (PSDI)**: '.
+                    $questionnaireResults['indices']['PSDI'].' (T-score: '.$tScore.")\n";
+
+                if (isset($questionnaireResults['interpretation']['PSDI'])) {
+                    $promptSection .= '  - '.$questionnaireResults['interpretation']['PSDI']."\n";
+                }
+            }
+
+            $promptSection .= "\n";
+        }
+
+        // Añadir información sobre el género usado para los baremos
+        if (isset($questionnaireResults['gender_used'])) {
+            $gender = $questionnaireResults['gender_used'] === 'M' ? 'Masculino' : 'Femenino';
+            $promptSection .= "### Información adicional:\n";
+            $promptSection .= '- Se utilizaron baremos para población adulta de género '.$gender." de Buenos Aires.\n\n";
+        }
+
+        // Añadir resumen
+        if (isset($questionnaireResults['summary']) && ! empty($questionnaireResults['summary'])) {
+            $promptSection .= "### Resumen de la evaluación SCL-90:\n";
+            $promptSection .= $questionnaireResults['summary']."\n\n";
+        }
+        if (isset($questionnaireResults['responses_sintomas']) && ! empty($questionnaireResults['responses_sintomas'])) {
+            $promptSection .= "### Sintomas destacados:\n";
+            foreach ($questionnaireResults['responses_sintomas'] as $sintoma) {
+                $promptSection .= '- '.$sintoma['id'].': '.$sintoma['question'].': '.$sintoma['answer']."\n";
+            }
+            $promptSection .= "\n";
+        }
+
+        foreach ($dimensions as $dimension => $items) {
+            $promptSection .= "### Dimension: ".$dimension."\n";
+            foreach ($items as $item) {
+                $promptSection .= '- '.$item."\n";
+            }
+            $promptSection .= "\n";
+        }
+
+        $promptSection .= "Considere T-scores entre 40 y 59 como nivel promedio, y no los describa como elevados ni ligeramente elevados";
+
+        return $promptSection;
+    }
+
+    /**
+     * Get AI-specific instructions for interpreting this questionnaire type
+     *
+     * @return string Formatted instructions
+     */
+    public function getInstructions(): string
+    {
+        $defaultInstructions = "Basándote en los resultados del SCL-90, proporciona:\n\n".
+               "1. Una interpretación clínica de las dimensiones sintomáticas elevadas.\n".
+               "2. Un análisis detallado del perfil sintomático general y su significado clínico.\n".
+               "3. Una evaluación de los índices globales (GSI, PST, PSDI) y su implicación en el malestar psicológico del paciente.\n".
+               "4. Un análisis comparativo de los resultados con poblaciones clínicas y no clínicas.\n".
+               "5. Posibles hipótesis diagnósticas basadas en el perfil sintomático detectado.\n".
+               "6. Evaluación de la posible presencia de trastornos psicológicos específicos en función de las puntuaciones obtenidas.\n".
+               "7. Identificación de síntomas relevantes para el diagnóstico diferencial con otras condiciones psicológicas.\n".
+               "8. Recomendaciones sobre posibles intervenciones terapéuticas o estrategias de afrontamiento adecuadas según los resultados.\n";
+
+        return $this->getInstructionsWithPrompt($defaultInstructions);
+    }
+}

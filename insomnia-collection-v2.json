@@ -1,0 +1,254 @@
+{
+	"_type": "export",
+	"__export_format": 4,
+	"__export_date": "2025-09-08T21:10:00.000Z",
+	"__export_source": "insomnia.desktop.app:v2023.5.8",
+	"resources": [
+		{
+			"_id": "req_001",
+			"parentId": "fld_001",
+			"modified": 1725829140000,
+			"created": 1725829140000,
+			"url": "http://localhost:8001/api/campaigns/nrysYjqe/questionnaires/2/responses",
+			"name": "Submit Audio Responses",
+			"description": "Submit audio responses for reflective questions questionnaire",
+			"method": "POST",
+			"body": {
+				"mimeType": "multipart/form-data",
+				"params": [
+					{
+						"name": "respondent[name]",
+						"value": "Juan Pérez"
+					},
+					{
+						"name": "respondent[email]",
+						"value": "juan.perez@example.com"
+					},
+					{
+						"name": "respondent[age]",
+						"value": "28"
+					},
+					{
+						"name": "responses[q1][type]",
+						"value": "audio"
+					},
+					{
+						"name": "responses[q1][audio_duration]",
+						"value": "45.2"
+					},
+					{
+						"name": "responses[q2][type]",
+						"value": "audio"
+					},
+					{
+						"name": "responses[q2][audio_duration]",
+						"value": "38.7"
+					},
+					{
+						"name": "responses[q3][type]",
+						"value": "audio"
+					},
+					{
+						"name": "responses[q3][audio_duration]",
+						"value": "52.1"
+					},
+					{
+						"name": "responses[q4][type]",
+						"value": "audio"
+					},
+					{
+						"name": "responses[q4][audio_duration]",
+						"value": "67.8"
+					},
+					{
+						"name": "responses[q5][type]",
+						"value": "audio"
+					},
+					{
+						"name": "responses[q5][audio_duration]",
+						"value": "41.3"
+					},
+					{
+						"name": "responses[q6][type]",
+						"value": "audio"
+					},
+					{
+						"name": "responses[q6][audio_duration]",
+						"value": "55.6"
+					},
+					{
+						"name": "responses[q7][type]",
+						"value": "audio"
+					},
+					{
+						"name": "responses[q7][audio_duration]",
+						"value": "72.4"
+					},
+					{
+						"name": "audio_files[q1]",
+						"value": "",
+						"type": "file"
+					},
+					{
+						"name": "audio_files[q2]",
+						"value": "",
+						"type": "file"
+					},
+					{
+						"name": "audio_files[q3]",
+						"value": "",
+						"type": "file"
+					},
+					{
+						"name": "audio_files[q4]",
+						"value": "",
+						"type": "file"
+					},
+					{
+						"name": "audio_files[q5]",
+						"value": "",
+						"type": "file"
+					},
+					{
+						"name": "audio_files[q6]",
+						"value": "",
+						"type": "file"
+					},
+					{
+						"name": "audio_files[q7]",
+						"value": "",
+						"type": "file"
+					}
+				]
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Accept",
+					"value": "application/json"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1725829140000,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global"
+		},
+		{
+			"_id": "req_002",
+			"parentId": "fld_001",
+			"modified": 1725829140000,
+			"created": 1725829140000,
+			"url": "http://localhost:8001/api/campaigns/nrysYjqe",
+			"name": "Get Campaign Info",
+			"description": "Get campaign information by code",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Accept",
+					"value": "application/json"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1725829139000,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global"
+		},
+		{
+			"_id": "req_003",
+			"parentId": "fld_002",
+			"modified": 1725829140000,
+			"created": 1725829140000,
+			"url": "http://localhost:8001/api/responses/1/status",
+			"name": "Get Response Status",
+			"description": "Check processing status of a response",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Accept",
+					"value": "application/json"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1725829138000,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global"
+		},
+		{
+			"_id": "req_004",
+			"parentId": "fld_002",
+			"modified": 1725829140000,
+			"created": 1725829140000,
+			"url": "http://localhost:8001/api/responses/1/analysis",
+			"name": "Get Analysis Results",
+			"description": "Get complete analysis when processing is finished",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Accept",
+					"value": "application/json"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1725829137000,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global"
+		},
+		{
+			"_id": "fld_001",
+			"parentId": "wrk_001",
+			"modified": 1725829140000,
+			"created": 1725829140000,
+			"name": "Questionnaire Responses",
+			"description": "Submit responses to questionnaires",
+			"environment": {},
+			"environmentPropertyOrder": null,
+			"metaSortKey": -1725829140000
+		},
+		{
+			"_id": "fld_002",
+			"parentId": "wrk_001",
+			"modified": 1725829140000,
+			"created": 1725829140000,
+			"name": "Analysis & Status",
+			"description": "Check processing status and get results",
+			"environment": {},
+			"environmentPropertyOrder": null,
+			"metaSortKey": -1725829139000
+		},
+		{
+			"_id": "wrk_001",
+			"parentId": null,
+			"modified": 1725829140000,
+			"created": 1725829140000,
+			"name": "Reskiling API",
+			"description": "API collection for reskiling platform",
+			"scope": "collection"
+		}
+	]
+}
