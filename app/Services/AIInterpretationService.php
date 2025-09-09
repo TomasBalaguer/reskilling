@@ -218,11 +218,53 @@ class AIInterpretationService
             
             // Detectar mime type basado en el archivo original o el temporal
             $fileForMimeDetection = !empty($originalFileName) ? $originalFileName : $fullPath;
-            $mimeType = $this->getAudioMimeType($fileForMimeDetection);
-            Log::info('🎵 Tipo MIME detectado', [
+            $originalMimeType = $this->getAudioMimeType($fileForMimeDetection);
+            
+            // Verificar si el formato es soportado por Gemini
+            $supportedFormats = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/aiff', 'audio/aac', 'audio/ogg', 'audio/flac'];
+            
+            $mimeType = $originalMimeType;
+            $audioFilePath = $fullPath;
+            
+            // Si es WebM, convertir a MP3
+            if ($originalMimeType === 'audio/webm' || str_contains($originalMimeType, 'webm')) {
+                Log::info('🔄 Formato WebM detectado, convirtiendo a MP3...', [
+                    'original_mime' => $originalMimeType,
+                    'original_path' => $fullPath
+                ]);
+                
+                try {
+                    $audioFilePath = $this->convertWebMToMp3($fullPath);
+                    $mimeType = 'audio/mpeg';
+                    
+                    // Re-leer el archivo convertido
+                    $audioData = base64_encode(file_get_contents($audioFilePath));
+                    $encodedSize = strlen($audioData);
+                    
+                    Log::info('✅ Audio convertido y codificado', [
+                        'converted_path' => $audioFilePath,
+                        'new_mime_type' => $mimeType,
+                        'base64_size_mb' => round($encodedSize / 1024 / 1024, 2)
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('❌ Error convirtiendo WebM a MP3', [
+                        'error' => $e->getMessage()
+                    ]);
+                    throw new \Exception("No se pudo convertir el audio WebM a un formato compatible: " . $e->getMessage());
+                }
+            } else if (!in_array($mimeType, $supportedFormats)) {
+                Log::warning('⚠️ Formato de audio no soportado por Gemini', [
+                    'mime_type' => $mimeType,
+                    'supported_formats' => $supportedFormats
+                ]);
+                throw new \Exception("Formato de audio no soportado: {$mimeType}. Use MP3, MP4 o WAV.");
+            }
+            
+            Log::info('🎵 Formato de audio listo para Gemini', [
                 'mime_type' => $mimeType,
-                'detected_from' => !empty($originalFileName) ? 'original_file' : 'temp_file',
-                'file_used' => $fileForMimeDetection
+                'original_mime' => $originalMimeType,
+                'converted' => $originalMimeType !== $mimeType,
+                'file_path' => $audioFilePath
             ]);
             
             // Construir prompt específico para análisis de audio
@@ -493,10 +535,68 @@ Responde SOLO con el JSON, sin texto adicional.";
             'wav' => 'audio/wav',
             'webm' => 'audio/webm',
             'ogg' => 'audio/ogg',
-            'm4a' => 'audio/mp4'
+            'm4a' => 'audio/mp4',
+            'tmp' => 'audio/webm' // Assume WebM for temp files
         ];
         
         return $mimeTypes[$extension] ?? 'audio/mpeg';
+    }
+    
+    /**
+     * Convierte archivo WebM a MP3 usando FFmpeg
+     */
+    private function convertWebMToMp3(string $webmPath): string
+    {
+        $mp3Path = str_replace('.webm', '.mp3', $webmPath);
+        if (pathinfo($webmPath, PATHINFO_EXTENSION) === 'tmp') {
+            $mp3Path = $webmPath . '.mp3';
+        }
+        
+        Log::info('🔄 Converting WebM to MP3', [
+            'source' => $webmPath,
+            'destination' => $mp3Path
+        ]);
+        
+        // Check if ffmpeg is available
+        $ffmpegPath = config('services.ffmpeg.path', 'ffmpeg');
+        
+        // Build ffmpeg command
+        $command = sprintf(
+            '%s -i %s -acodec libmp3lame -b:a 128k %s 2>&1',
+            escapeshellcmd($ffmpegPath),
+            escapeshellarg($webmPath),
+            escapeshellarg($mp3Path)
+        );
+        
+        Log::info('FFmpeg command:', ['command' => $command]);
+        
+        // Execute conversion
+        $output = [];
+        $returnCode = 0;
+        exec($command, $output, $returnCode);
+        
+        if ($returnCode !== 0) {
+            Log::error('FFmpeg conversion failed', [
+                'return_code' => $returnCode,
+                'output' => implode("\n", $output)
+            ]);
+            throw new \Exception("Audio conversion failed. FFmpeg may not be installed or the file format is not supported.");
+        }
+        
+        // Verify the output file exists
+        if (!file_exists($mp3Path)) {
+            throw new \Exception("Converted MP3 file was not created");
+        }
+        
+        Log::info('✅ Conversion successful', [
+            'mp3_size' => filesize($mp3Path),
+            'mp3_path' => $mp3Path
+        ]);
+        
+        // Optionally delete the original WebM file
+        // unlink($webmPath);
+        
+        return $mp3Path;
     }
 
     /**

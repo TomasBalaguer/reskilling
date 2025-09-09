@@ -735,14 +735,17 @@ function audioRecorder() {
         
         // Get supported MIME type
         getSupportedMimeType() {
+            // Prioritize formats supported by Gemini API
+            // Note: Most browsers only support webm/ogg for MediaRecorder
             const types = [
-                'audio/webm;codecs=opus',
-                'audio/webm;codecs=vp8,opus',
-                'audio/webm',
                 'audio/mp4;codecs=mp4a.40.2',
                 'audio/mp4',
                 'audio/mpeg',
-                'audio/wav'
+                'audio/wav',
+                'audio/ogg;codecs=opus',
+                'audio/webm;codecs=opus',
+                'audio/webm;codecs=vp8,opus',
+                'audio/webm'
             ];
             
             // Check MediaRecorder support first
@@ -754,12 +757,18 @@ function audioRecorder() {
             for (const type of types) {
                 if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type)) {
                     console.log('Supported MIME type found:', type);
+                    
+                    // Warning if we're using WebM (not supported by Gemini)
+                    if (type.includes('webm')) {
+                        console.warn('WARNING: Using WebM format which is not supported by Gemini API. Backend conversion will be needed.');
+                    }
+                    
                     return type;
                 }
             }
             
             // Last resort fallback
-            console.warn('No supported MIME type found, using fallback');
+            console.warn('No supported MIME type found, using WebM fallback (not supported by Gemini)');
             return 'audio/webm';
         }
     }
