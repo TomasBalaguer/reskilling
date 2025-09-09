@@ -106,21 +106,6 @@
     <!-- Incluir vista parcial compartida -->
     @include('partials.response-detail', ['response' => $response])
 
-
-    <!-- Análisis Prosódico -->
-    @if($response->prosodic_analysis)
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-wave-square"></i> Análisis Prosódico
-                </h5>
-            </div>
-            <div class="card-body">
-                <pre class="bg-light p-3 rounded">{{ json_encode($response->prosodic_analysis, JSON_PRETTY_PRINT) }}</pre>
-            </div>
-        </div>
-    @endif
-
     <!-- Debug: Información técnica -->
     <div class="card border-secondary">
         <div class="card-header bg-light">

@@ -104,50 +104,6 @@
     <!-- Incluir vista parcial compartida -->
     @include('partials.response-detail', ['response' => $response])
 
-
-
-    <!-- Datos Técnicos Adicionales -->
-    @if($response->transcriptions && !$response->questionnaire->questions)
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-microphone"></i> Transcripciones de Audio (Raw)
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <strong>Nota:</strong> Las transcripciones se muestran integradas con cada pregunta arriba.
-                    Esta sección solo se muestra si hay problemas con la estructura de preguntas.
-                </div>
-                @if(is_array($response->transcriptions))
-                    @foreach($response->transcriptions as $questionId => $transcription)
-                        <div class="border-bottom pb-3 mb-3">
-                            <h6 class="text-muted">Pregunta {{ $questionId }}</h6>
-                            <p class="bg-light p-3 rounded">{{ $transcription }}</p>
-                        </div>
-                    @endforeach
-                @else
-                    <pre class="bg-light p-3 rounded">{{ $response->transcriptions }}</pre>
-                @endif
-            </div>
-        </div>
-    @endif
-
-    <!-- Análisis Prosódico -->
-    @if($response->prosodic_analysis)
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-wave-square"></i> Análisis Prosódico
-                </h5>
-            </div>
-            <div class="card-body">
-                <pre class="bg-light p-3 rounded">{{ json_encode($response->prosodic_analysis, JSON_PRETTY_PRINT) }}</pre>
-            </div>
-        </div>
-    @endif
-
     <!-- Debug: Información técnica -->
     <div class="card border-secondary">
         <div class="card-header bg-light">

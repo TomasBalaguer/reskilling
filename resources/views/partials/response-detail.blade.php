@@ -40,23 +40,47 @@
             <div id="collapseQuestions" class="accordion-collapse collapse show" 
                  aria-labelledby="headingQuestions" data-bs-parent="#mainAccordion">
                 <div class="accordion-body">
-                    @php $questionNumber = 1; @endphp
-                    @foreach($questions as $questionId => $questionData)
-                        @if(isset($allResponses[$questionId]))
-                            @php
-                                $responseData = $allResponses[$questionId];
-                                $geminiAnalysis = $responseData['gemini_analysis'] ?? null;
-                                $transcription = $responseData['transcription_text'] ?? 
-                                                $transcriptions[$questionId] ?? 
-                                                ($geminiAnalysis['transcripcion'] ?? '');
-                            @endphp
+                    @php 
+                        $questionNumber = 1; 
+                        // Si no hay questions del cuestionario, usar las keys de allResponses
+                        $questionKeys = count($questions) > 0 ? array_keys($questions) : array_keys($allResponses);
+                    @endphp
+                    @foreach($allResponses as $questionId => $responseData)
+                        @php
+                            // Obtener el texto de la pregunta
+                            $questionText = '';
+                            if (isset($questions[$questionId])) {
+                                $questionText = is_array($questions[$questionId]) ? 
+                                              ($questions[$questionId]['text'] ?? $questions[$questionId]) : 
+                                              $questions[$questionId];
+                            } else {
+                                // Mapeo de preguntas reflexivas por defecto
+                                $defaultQuestions = [
+                                    'reflective_questions_q1' => 'Si pudieras mandarle un mensaje a vos mismo/a hace unos años, ¿qué te dirías sobre quién sos hoy y lo que fuiste aprendiendo de vos?',
+                                    'reflective_questions_q2' => 'Contame sobre algo que no te salió como esperabas. ¿Cómo lo viviste y qué hiciste para seguir adelante?',
+                                    'reflective_questions_q3' => 'Pensá en una decisión importante que tuviste que tomar. ¿Cómo la encaraste y qué aprendiste de esa experiencia?',
+                                    'reflective_questions_q4' => '¿Cómo manejas las situaciones cuando hay tensión o desacuerdo con otros? Dame un ejemplo.',
+                                    'reflective_questions_q5' => 'Contame sobre una vez que resolviste un problema de manera creativa o diferente.',
+                                    'reflective_questions_q6' => '¿Qué te motiva hoy y qué te gustaría lograr en el futuro?',
+                                    'reflective_questions_q7' => 'Imaginate que alguien que conocés trabajó mucho en algo y no le dieron el reconocimiento que esperaba. ¿Cómo creés que se sintió? ¿Qué harías vos en su lugar?'
+                                ];
+                                
+                                $questionText = $defaultQuestions[$questionId] ?? "Pregunta " . str_replace('reflective_questions_q', '', $questionId);
+                            }
+                            
+                            $geminiAnalysis = $responseData['gemini_analysis'] ?? null;
+                            $transcription = $responseData['transcription_text'] ?? 
+                                            $transcriptions[$questionId] ?? 
+                                            ($geminiAnalysis['transcripcion'] ?? '');
+                        @endphp
+                        @if($responseData)
                             
                             <div class="question-card mb-4 p-4 border rounded bg-white">
                                 <!-- PREGUNTA -->
                                 <div class="d-flex align-items-start mb-3">
                                     <span class="badge bg-primary rounded-circle me-3" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">{{ $questionNumber }}</span>
                                     <div class="flex-grow-1">
-                                        <p class="text-muted mb-2">{{ is_array($questionData) ? ($questionData['text'] ?? 'Pregunta ' . $questionNumber) : $questionData }}</p>
+                                        <p class="text-muted mb-2">{{ $questionText }}</p>
                                     </div>
                                 </div>
                                 
