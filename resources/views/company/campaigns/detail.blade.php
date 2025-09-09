@@ -7,22 +7,53 @@
     <div class="d-flex gap-2">
         @if($campaign->responses()->count() === 0)
             <a href="{{ route('company.campaigns.edit', $campaign->id) }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
-               class="btn btn-primary btn-sm px-3">
+               class="btn btn-custom-purple btn-sm px-3">
                 <i class="fas fa-edit me-2"></i>Editar
             </a>
         @endif
         <a href="{{ route('company.campaigns.export', $campaign->id) }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
-           class="btn btn-success btn-sm px-3">
+           class="btn btn-custom-purple btn-sm px-3">
             <i class="fas fa-download me-2"></i>Exportar CSV
         </a>
         <a href="{{ route('company.campaigns') }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
-           class="btn btn-outline-primary btn-sm px-3">
+           class="btn btn-custom-purple btn-sm px-3">
             <i class="fas fa-arrow-left me-2"></i>Volver
         </a>
     </div>
 @endsection
 
 @section('content')
+<style>
+.btn-custom-purple {
+    color: #11B981;
+    border-color: #11B981;
+    background-color: transparent;
+}
+
+.btn-custom-purple:hover,
+.btn-custom-purple:focus,
+.btn-custom-purple:active,
+.btn-custom-purple.active {
+    color: white;
+    background-color: #11B981;
+    border-color: #11B981;
+    box-shadow: 0 0 0 0.2rem rgba(95, 8, 206, 0.25);
+}
+
+.btn-custom-purple:focus {
+    outline: 0;
+}
+
+.stats-number {
+    color: #11B981 !important;
+    font-weight: 600;
+}
+
+.stats-label {
+    color: #11B981 !important;
+    opacity: 0.8;
+}
+</style>
     <!-- Información de la campaña -->
     <div class="row mb-4">
         <div class="col-md-8">
@@ -75,25 +106,25 @@
                 </div>
                 <div class="card-body">
                     <div class="text-center">
-                        <h3 class="text-primary">{{ $campaign->responses->count() }}</h3>
-                        <p class="text-muted mb-3">Respuestas totales</p>
+                        <h3 class="stats-number">{{ $campaign->responses->count() }}</h3>
+                        <p class="stats-label mb-3">Respuestas totales</p>
                         
                         <div class="row text-center">
                             <div class="col-4">
-                                <small class="text-success">
-                                    <strong>{{ $campaign->responses->whereIn('processing_status', ['completed', 'analyzed'])->count() }}</strong><br>
+                                <small class="stats-label">
+                                    <strong class="stats-number">{{ $campaign->responses->whereIn('processing_status', ['completed', 'analyzed'])->count() }}</strong><br>
                                     Completadas
                                 </small>
                             </div>
                             <div class="col-4">
-                                <small class="text-info">
-                                    <strong>{{ $campaign->responses->where('processing_status', 'processing')->count() }}</strong><br>
+                                <small class="stats-label">
+                                    <strong class="stats-number">{{ $campaign->responses->where('processing_status', 'processing')->count() }}</strong><br>
                                     Procesando
                                 </small>
                             </div>
                             <div class="col-4">
-                                <small class="text-warning">
-                                    <strong>{{ $campaign->responses->where('processing_status', 'pending')->count() }}</strong><br>
+                                <small class="stats-label">
+                                    <strong class="stats-number">{{ $campaign->responses->where('processing_status', 'pending')->count() }}</strong><br>
                                     Pendientes
                                 </small>
                             </div>
@@ -170,7 +201,7 @@
                                 <form method="POST" action="{{ route('company.campaigns.resend-invitations', $campaign->id) }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
                                       style="display: inline-block;">
                                     @csrf
-                                    <button type="submit" class="btn btn-outline-primary btn-sm mb-2 px-3" onclick="return confirm('¿Estás seguro de que quieres reenviar todas las invitaciones?')">
+                                    <button type="submit" class="btn btn-custom-purple btn-sm mb-2 px-3" onclick="return confirm('¿Estás seguro de que quieres reenviar todas las invitaciones?')">
                                         <i class="fas fa-envelope me-2"></i>Reenviar Invitaciones
                                     </button>
                                 </form>
@@ -178,14 +209,14 @@
                             @endif
                             
                             <div class="d-flex flex-wrap gap-2">
-                                <button class="btn btn-primary btn-sm px-3" onclick="showSingleInviteModal()">
+                                <button class="btn btn-custom-purple btn-sm px-3" onclick="showSingleInviteModal()">
                                     <i class="fas fa-user-plus me-2"></i>Invitar Persona
                                 </button>
-                                <button class="btn btn-info btn-sm px-3" onclick="showCSVUploadModal()">
+                                <button class="btn btn-custom-purple btn-sm px-3" onclick="showCSVUploadModal()">
                                     <i class="fas fa-upload me-2"></i>Subir CSV
                                 </button>
                                 <a href="{{ route('company.campaigns.email-logs', $campaign->id) }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
-                                   class="btn btn-outline-info btn-sm px-3">
+                                   class="btn btn-custom-purple btn-sm px-3">
                                     <i class="fas fa-eye me-2"></i>Ver Logs
                                 </a>
                             </div>
@@ -300,25 +331,25 @@
                         <div class="row mt-3">
                             <div class="col-md-3">
                                 <div class="text-center">
-                                    <h5 class="text-primary">{{ $campaign->invitations->count() }}</h5>
-                                    <small class="text-muted">Total Invitados</small>
+                                    <h5 class="stats-number">{{ $campaign->invitations->count() }}</h5>
+                                    <small class="stats-label">Total Invitados</small>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="text-center">
-                                    <h5 class="text-success">{{ $campaign->invitations->where('status', 'opened')->count() }}</h5>
-                                    <small class="text-muted">Enviados</small>
+                                    <h5 class="stats-number">{{ $campaign->invitations->where('status', 'opened')->count() }}</h5>
+                                    <small class="stats-label">Enviados</small>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="text-center">
                                     @php
                                         $respondedCount = $campaign->invitations->filter(function($inv) use ($campaign) {
-                                            return $campaign->responses->where('email', $inv->email)->count() > 0;
+                                            return $campaign->responses->where('respondent_email', $inv->email)->count() > 0;
                                         })->count();
                                     @endphp
-                                    <h5 class="text-info">{{ $respondedCount }}</h5>
-                                    <small class="text-muted">Respondieron</small>
+                                    <h5 class="stats-number">{{ $respondedCount }}</h5>
+                                    <small class="stats-label">Respondieron</small>
                                 </div>
                             </div>
                             <div class="col-md-3">
@@ -328,8 +359,8 @@
                                             ? round(($respondedCount / $campaign->invitations->count()) * 100, 1) 
                                             : 0;
                                     @endphp
-                                    <h5 class="text-warning">{{ $responseRate }}%</h5>
-                                    <small class="text-muted">Tasa de Respuesta</small>
+                                    <h5 class="stats-number">{{ $responseRate }}%</h5>
+                                    <small class="stats-label">Tasa de Respuesta</small>
                                 </div>
                             </div>
                         </div>
