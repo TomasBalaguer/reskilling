@@ -37,6 +37,11 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     Route::delete('/companies/{id}', [AdminController::class, 'deleteCompany'])->name('companies.delete');
     Route::patch('/companies/{id}/toggle-status', [AdminController::class, 'toggleCompanyStatus'])->name('companies.toggle-status');
     
+    // Company Users
+    Route::post('/companies/{id}/users', [AdminController::class, 'createCompanyUser'])->name('companies.create-user');
+    Route::patch('/companies/{companyId}/users/{userId}/password', [AdminController::class, 'resetCompanyUserPassword'])->name('companies.reset-user-password');
+    Route::patch('/companies/{companyId}/users/{userId}/toggle-status', [AdminController::class, 'toggleCompanyUserStatus'])->name('companies.toggle-user-status');
+    
     // Campaigns  
     Route::get('/campaigns', [AdminController::class, 'campaigns'])->name('campaigns');
     Route::get('/campaigns/create', [AdminController::class, 'createCampaign'])->name('campaigns.create');

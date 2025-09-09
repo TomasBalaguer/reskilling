@@ -91,14 +91,26 @@ class AdminController extends Controller
             'max_campaigns' => 'required|integer|min:1|max:1000',
             'max_responses_per_campaign' => 'required|integer|min:10|max:10000',
             'is_active' => 'boolean',
+            'admin_email' => 'required|email|max:255|unique:company_users,email',
+            'admin_password' => 'required|string|min:6',
         ]);
 
         $validated['is_active'] = $request->boolean('is_active', true);
 
         $company = Company::create($validated);
 
+        // Crear usuario administrador de la empresa
+        \App\Models\CompanyUser::create([
+            'company_id' => $company->id,
+            'name' => $validated['name'] . ' Admin',
+            'email' => $validated['admin_email'],
+            'password' => $validated['admin_password'],
+            'role' => 'admin',
+            'is_active' => true,
+        ]);
+
         return redirect()->route('admin.companies.detail', $company->id)
-            ->with('success', 'Empresa creada exitosamente.');
+            ->with('success', 'Empresa y usuario administrador creados exitosamente.');
     }
 
     /**
@@ -497,5 +509,62 @@ class AdminController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Crear usuario de empresa
+     */
+    public function createCompanyUser(Request $request, $companyId)
+    {
+        $company = Company::findOrFail($companyId);
+        
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:company_users,email',
+            'password' => 'required|string|min:6',
+            'role' => 'required|in:user,admin'
+        ]);
+
+        $validated['company_id'] = $company->id;
+        $validated['is_active'] = true;
+
+        \App\Models\CompanyUser::create($validated);
+
+        return redirect()->back()
+            ->with('success', 'Usuario creado exitosamente.');
+    }
+
+    /**
+     * Cambiar contraseña de usuario de empresa
+     */
+    public function resetCompanyUserPassword(Request $request, $companyId, $userId)
+    {
+        $company = Company::findOrFail($companyId);
+        $user = $company->users()->findOrFail($userId);
+        
+        $validated = $request->validate([
+            'password' => 'required|string|min:6|confirmed'
+        ]);
+
+        $user->update(['password' => $validated['password']]);
+
+        return redirect()->back()
+            ->with('success', 'Contraseña actualizada exitosamente.');
+    }
+
+    /**
+     * Toggle status de usuario de empresa
+     */
+    public function toggleCompanyUserStatus($companyId, $userId)
+    {
+        $company = Company::findOrFail($companyId);
+        $user = $company->users()->findOrFail($userId);
+        
+        $user->update(['is_active' => !$user->is_active]);
+        
+        $statusText = $user->is_active ? 'activado' : 'desactivado';
+        
+        return redirect()->back()
+            ->with('success', "Usuario {$statusText} exitosamente.");
     }
 }

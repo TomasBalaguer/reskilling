@@ -135,6 +135,88 @@
         </div>
     </div>
 
+    <!-- Usuarios de la empresa -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users"></i> Usuarios de Empresa ({{ $company->users->count() }})
+                    </h5>
+                    <button class="btn btn-success btn-sm" onclick="showCreateUserModal()">
+                        <i class="fas fa-plus"></i> Crear Usuario
+                    </button>
+                </div>
+                <div class="card-body">
+                    @if($company->users->count() > 0)
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Email</th>
+                                        <th>Rol</th>
+                                        <th>Estado</th>
+                                        <th>Creado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($company->users as $user)
+                                        <tr>
+                                            <td><strong>{{ $user->name }}</strong></td>
+                                            <td>{{ $user->email }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ $user->role === 'admin' ? 'danger' : 'primary' }}">
+                                                    {{ ucfirst($user->role) }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ $user->is_active ? 'success' : 'secondary' }}">
+                                                    {{ $user->is_active ? 'Activo' : 'Inactivo' }}
+                                                </span>
+                                            </td>
+                                            <td>{{ $user->created_at->format('d/m/Y') }}</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <button class="btn btn-outline-warning" 
+                                                            onclick="showResetPasswordModal({{ $user->id }}, '{{ $user->name }}')"
+                                                            title="Cambiar contraseña">
+                                                        <i class="fas fa-key"></i>
+                                                    </button>
+                                                    <form method="POST" 
+                                                          action="{{ route('admin.companies.toggle-user-status', [$company->id, $user->id]) }}" 
+                                                          class="d-inline">
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <button type="submit" 
+                                                                class="btn btn-outline-{{ $user->is_active ? 'secondary' : 'success' }}"
+                                                                onclick="return confirm('¿{{ $user->is_active ? 'Desactivar' : 'Activar' }} este usuario?')"
+                                                                title="{{ $user->is_active ? 'Desactivar' : 'Activar' }} usuario">
+                                                            <i class="fas fa-{{ $user->is_active ? 'user-slash' : 'user-check' }}"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-user-plus fa-3x mb-3"></i>
+                            <p>No hay usuarios creados para esta empresa</p>
+                            <button class="btn btn-primary" onclick="showCreateUserModal()">
+                                <i class="fas fa-plus"></i> Crear primer usuario
+                            </button>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Campañas de la empresa -->
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -263,4 +345,117 @@
             @endif
         </div>
     </div>
+
+    <!-- Modal para crear usuario -->
+    <div class="modal fade" id="createUserModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Crear Usuario de Empresa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createUserForm" method="POST" action="{{ route('admin.companies.create-user', $company->id) }}">
+                        @csrf
+                        <div class="mb-3">
+                            <label for="user_name" class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="user_name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="user_email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="user_email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="user_password" class="form-label">Contraseña <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="user_password" name="password" required>
+                            <div class="form-text">Mínimo 6 caracteres</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="user_role" class="form-label">Rol</label>
+                            <select class="form-control" id="user_role" name="role">
+                                <option value="user">Usuario</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" onclick="submitCreateUser()">Crear Usuario</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para cambiar contraseña -->
+    <div class="modal fade" id="resetPasswordModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Cambiar Contraseña</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="resetPasswordForm" method="POST">
+                        @csrf
+                        @method('PATCH')
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 
+                            Cambiando contraseña para: <strong id="reset_user_name"></strong>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">Nueva Contraseña <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="new_password" name="password" required>
+                            <div class="form-text">Mínimo 6 caracteres</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">Confirmar Contraseña <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="confirm_password" name="password_confirmation" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-warning" onclick="submitResetPassword()">Cambiar Contraseña</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showCreateUserModal() {
+            const modal = new bootstrap.Modal(document.getElementById('createUserModal'));
+            modal.show();
+        }
+
+        function showResetPasswordModal(userId, userName) {
+            document.getElementById('reset_user_name').textContent = userName;
+            document.getElementById('resetPasswordForm').action = 
+                '{{ route("admin.companies.reset-user-password", [$company->id, "__USER_ID__"]) }}'.replace('__USER_ID__', userId);
+            
+            const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+            modal.show();
+        }
+
+        function submitCreateUser() {
+            document.getElementById('createUserForm').submit();
+        }
+
+        function submitResetPassword() {
+            const password = document.getElementById('new_password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            
+            if (password !== confirmPassword) {
+                alert('Las contraseñas no coinciden');
+                return;
+            }
+            
+            if (password.length < 6) {
+                alert('La contraseña debe tener al menos 6 caracteres');
+                return;
+            }
+            
+            document.getElementById('resetPasswordForm').submit();
+        }
+    </script>
 @endsection

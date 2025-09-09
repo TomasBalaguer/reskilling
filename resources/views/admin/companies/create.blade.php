@@ -93,6 +93,45 @@
                         </div>
                         
                         <hr>
+                        <h6 class="text-primary"><i class="fas fa-user"></i> Usuario Administrador</h6>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <!-- Email del usuario admin -->
+                                <div class="mb-3">
+                                    <label for="admin_email" class="form-label">Email del Usuario Admin *</label>
+                                    <input type="email" 
+                                           class="form-control @error('admin_email') is-invalid @enderror" 
+                                           id="admin_email" 
+                                           name="admin_email" 
+                                           value="{{ old('admin_email') }}" 
+                                           required>
+                                    @error('admin_email')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                    <small class="text-muted">Email para acceder al panel de empresa</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <!-- Contraseña temporal -->
+                                <div class="mb-3">
+                                    <label for="admin_password" class="form-label">Contraseña Temporal *</label>
+                                    <input type="password" 
+                                           class="form-control @error('admin_password') is-invalid @enderror" 
+                                           id="admin_password" 
+                                           name="admin_password" 
+                                           minlength="6" 
+                                           required>
+                                    @error('admin_password')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                    <small class="text-muted">Mínimo 6 caracteres</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
                         <h6 class="text-primary"><i class="fas fa-cog"></i> Límites y Configuración</h6>
                         
                         <div class="row">
