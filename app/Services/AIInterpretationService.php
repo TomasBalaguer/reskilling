@@ -575,9 +575,15 @@ Responde SOLO con el JSON, sin texto adicional.";
         ]);
         
         // Primero, intentar extraer JSON de bloques de markdown
+        // Mejorado el regex para capturar todo el JSON incluyendo saltos de línea
         if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $response, $matches)) {
             Log::info('✂️ JSON extraído de bloque markdown');
             $jsonString = trim($matches[1]);
+        } else if (str_contains($response, '```')) {
+            // Si tiene backticks pero el regex no funcionó, intentar limpiar manualmente
+            $cleaned = str_replace(['```json', '```'], '', $response);
+            $jsonString = trim($cleaned);
+            Log::info('✂️ JSON extraído limpiando backticks manualmente');
         } else {
             // Fallback: buscar el primer { y el último } para extraer el JSON
             $startPos = strpos($response, '{');
