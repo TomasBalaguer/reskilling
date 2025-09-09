@@ -131,7 +131,7 @@
                                             @if($questionnaire->description)
                                                 <br><small class="text-muted">{{ $questionnaire->description }}</small>
                                             @endif
-                                            <br><small class="badge bg-info">{{ $questionnaire->questionnaire_type->getDisplayName() ?? 'Tipo: ' . $questionnaire->questionnaire_type->value }}</small>
+                                            <br><small class="badge bg-info">{{ $questionnaire->getQuestionnaireType()->getDisplayName() ?? 'Tipo: ' . $questionnaire->getQuestionnaireType()->value }}</small>
                                         </label>
                                     </div>
                                 @endforeach
@@ -173,8 +173,24 @@
                                        {{ old('access_type') === 'email_list' ? 'checked' : '' }}>
                                 <label class="form-check-label" for="email_list">
                                     <strong>Lista de Emails</strong>
-                                    <br><small class="text-muted">Solo las personas en la lista podrán acceder mediante invitación</small>
+                                    <br><small class="text-muted">Se enviará a las personas en la lista mediante invitación</small>
                                 </label>
+                            </div>
+                            
+                            <!-- Allow Public Access checkbox for Email List -->
+                            <div class="mt-3" id="allow_public_access_option" style="{{ old('access_type') === 'email_list' ? '' : 'display: none;' }}">
+                                <div class="form-check">
+                                    <input class="form-check-input" 
+                                           type="checkbox" 
+                                           name="allow_public_access" 
+                                           id="allow_public_access" 
+                                           value="1"
+                                           {{ old('allow_public_access', '1') ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="allow_public_access">
+                                        <strong>Permitir también acceso público</strong>
+                                        <br><small class="text-muted">El enlace público también funcionará, no solo las invitaciones por email</small>
+                                    </label>
+                                </div>
                             </div>
 
                             <div class="mt-3" id="email_list_options" style="{{ old('access_type') === 'email_list' ? '' : 'display: none;' }}">
@@ -188,10 +204,34 @@
                                            class="form-control @error('email_list') is-invalid @enderror" 
                                            id="email_list_file" 
                                            name="email_list" 
-                                           accept=".csv">
+                                           accept=".csv"
+                                           onchange="previewCSV(this)">
                                     @error('email_list')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
+                                </div>
+                                
+                                <!-- CSV Preview -->
+                                <div id="csv_preview" style="display: none;">
+                                    <div class="alert alert-success">
+                                        <i class="fas fa-check-circle"></i> Preview del archivo CSV
+                                        <span id="csv_count"></span>
+                                    </div>
+                                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                        <table class="table table-sm table-bordered">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Email</th>
+                                                    <th>Nombre</th>
+                                                    <th>Estado</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="csv_preview_body">
+                                                <!-- Preview rows will be inserted here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -217,14 +257,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const publicLinkRadio = document.getElementById('public_link');
     const emailListRadio = document.getElementById('email_list');
     const emailListOptions = document.getElementById('email_list_options');
+    const allowPublicAccessOption = document.getElementById('allow_public_access_option');
     const emailListFile = document.getElementById('email_list_file');
 
     function toggleEmailOptions() {
         if (emailListRadio.checked) {
             emailListOptions.style.display = 'block';
+            allowPublicAccessOption.style.display = 'block';
             emailListFile.required = true;
         } else {
             emailListOptions.style.display = 'none';
+            allowPublicAccessOption.style.display = 'none';
             emailListFile.required = false;
         }
     }
@@ -235,5 +278,77 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial state
     toggleEmailOptions();
 });
+
+function previewCSV(input) {
+    const file = input.files[0];
+    const previewDiv = document.getElementById('csv_preview');
+    const previewBody = document.getElementById('csv_preview_body');
+    const csvCount = document.getElementById('csv_count');
+    
+    if (!file) {
+        previewDiv.style.display = 'none';
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const csv = e.target.result;
+        const lines = csv.split('\n').filter(line => line.trim() !== '');
+        
+        previewBody.innerHTML = '';
+        let validEmails = 0;
+        let invalidEmails = 0;
+        let isFirstLineHeader = false;
+        
+        lines.forEach((line, index) => {
+            const columns = line.split(',').map(col => col.trim().replace(/"/g, ''));
+            const email = columns[0];
+            const name = columns[1] || '';
+            
+            // Check if first line is header
+            if (index === 0 && !isValidEmail(email)) {
+                isFirstLineHeader = true;
+                return; // Skip header row
+            }
+            
+            const isValid = isValidEmail(email);
+            if (isValid) validEmails++;
+            else invalidEmails++;
+            
+            const rowNumber = isFirstLineHeader ? index : index + 1;
+            const statusClass = isValid ? 'text-success' : 'text-danger';
+            const statusIcon = isValid ? 'fas fa-check' : 'fas fa-times';
+            const statusText = isValid ? 'Válido' : 'Email inválido';
+            
+            const row = document.createElement('tr');
+            row.className = isValid ? '' : 'table-warning';
+            row.innerHTML = `
+                <td>${rowNumber}</td>
+                <td>${email}</td>
+                <td>${name}</td>
+                <td class="${statusClass}">
+                    <i class="${statusIcon}"></i> ${statusText}
+                </td>
+            `;
+            previewBody.appendChild(row);
+        });
+        
+        // Update count
+        const totalEmails = validEmails + invalidEmails;
+        csvCount.innerHTML = `
+            - <strong>${validEmails}</strong> emails válidos
+            ${invalidEmails > 0 ? `, <span class="text-warning">${invalidEmails} inválidos</span>` : ''}
+        `;
+        
+        previewDiv.style.display = 'block';
+    };
+    
+    reader.readAsText(file);
+}
+
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
 </script>
 @endsection

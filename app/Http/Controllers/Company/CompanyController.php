@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
+use App\Mail\CampaignInvitation;
 use App\Models\Campaign;
 use App\Models\CampaignResponse;
 use App\Models\Company;
 use App\Services\ComprehensiveReportService;
+use App\Services\EmailLoggerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 class CompanyController extends Controller
@@ -299,6 +302,7 @@ class CompanyController extends Controller
             'description' => 'nullable|string',
             'max_responses' => 'required|integer|min:1|max:' . $company->max_responses_per_campaign,
             'access_type' => 'required|in:public_link,email_list',
+            'allow_public_access' => 'nullable|boolean',
             'active_from' => 'nullable|date',
             'active_until' => 'nullable|date|after:active_from',
             'email_list' => 'nullable|file|mimes:csv,txt|max:2048',
@@ -311,6 +315,12 @@ class CompanyController extends Controller
             $code = 'CAMP' . strtoupper(uniqid());
         } while (Campaign::where('code', $code)->exists());
 
+        // Determinar allow_public_access basado en el tipo de acceso
+        $allowPublicAccess = true; // Por defecto true para public_link
+        if ($validated['access_type'] === 'email_list') {
+            $allowPublicAccess = $request->boolean('allow_public_access', true);
+        }
+
         $campaignData = [
             'company_id' => $companyId,
             'name' => $validated['name'],
@@ -321,6 +331,7 @@ class CompanyController extends Controller
             'active_from' => $validated['active_from'],
             'active_until' => $validated['active_until'],
             'access_type' => $validated['access_type'],
+            'allow_public_access' => $allowPublicAccess,
         ];
 
         $campaign = Campaign::create($campaignData);
@@ -386,8 +397,8 @@ class CompanyController extends Controller
             ]);
         }
 
-        // Opcional: Enviar emails de invitación
-        // $this->sendInvitationEmails($campaign, $emails);
+        // Enviar emails de invitación automáticamente
+        $this->sendInvitationEmails($campaign);
     }
 
     /**
@@ -431,6 +442,11 @@ class CompanyController extends Controller
             'active_from' => 'nullable|date',
             'active_until' => 'nullable|date|after:active_from',
         ]);
+
+        // Handle allow_public_access for email_list campaigns
+        if ($campaign->access_type === 'email_list') {
+            $validated['allow_public_access'] = $request->has('allow_public_access');
+        }
 
         $campaign->update($validated);
 
@@ -533,5 +549,233 @@ class CompanyController extends Controller
 
         return redirect()->back()
             ->with('success', 'Logo eliminado exitosamente.');
+    }
+
+    /**
+     * Enviar emails de invitación a todos los invitados de la campaña
+     */
+    private function sendInvitationEmails(Campaign $campaign)
+    {
+        $emailLogger = app(EmailLoggerService::class);
+        $invitations = $campaign->invitations;
+        
+        foreach ($invitations as $invitation) {
+            // Log email as queued
+            $emailLog = $emailLogger->logEmailQueued($campaign, $invitation);
+            
+            try {
+                Mail::to($invitation->email)->queue(
+                    new CampaignInvitation($campaign, $invitation)
+                );
+                
+                // Log email as sent and update invitation status
+                $emailLogger->logEmailSent($emailLog);
+                $invitation->update(['status' => 'opened']);
+                
+            } catch (\Exception $e) {
+                // Log email as failed
+                $emailLogger->logEmailFailed($emailLog, 'Error sending campaign invitation email: ' . $e->getMessage(), $e);
+            }
+        }
+    }
+
+    /**
+     * Reenviar invitaciones por email (para uso desde admin)
+     */
+    public function resendInvitations(Request $request, $campaignId)
+    {
+        $companyId = $request->get('company_id');
+        $campaign = Campaign::where('company_id', $companyId)->findOrFail($campaignId);
+        
+        // Si se especifica un email individual
+        if ($request->has('single_email')) {
+            $invitation = $campaign->invitations()->where('email', $request->single_email)->first();
+            
+            if ($invitation) {
+                try {
+                    Mail::to($invitation->email)->queue(
+                        new CampaignInvitation($campaign, $invitation)
+                    );
+                    $invitation->update(['status' => 'opened']);
+                    
+                    return redirect()->back()
+                        ->with('success', 'Invitación reenviada a ' . $invitation->email);
+                } catch (\Exception $e) {
+                    Log::error('Error sending individual invitation', [
+                        'campaign_id' => $campaign->id,
+                        'email' => $invitation->email,
+                        'error' => $e->getMessage()
+                    ]);
+                    
+                    return redirect()->back()
+                        ->with('error', 'Error al enviar la invitación.');
+                }
+            }
+            
+            return redirect()->back()
+                ->with('error', 'Invitación no encontrada.');
+        }
+        
+        // Enviar a todas las invitaciones
+        $this->sendInvitationEmails($campaign);
+        
+        return redirect()->back()
+            ->with('success', 'Invitaciones reenviadas exitosamente.');
+    }
+
+    /**
+     * Agregar una invitación individual
+     */
+    public function addSingleInvitation(Request $request, $campaignId)
+    {
+        $companyId = $request->get('company_id');
+        $campaign = Campaign::where('company_id', $companyId)->findOrFail($campaignId);
+        
+        $validated = $request->validate([
+            'email' => 'required|email',
+            'name' => 'nullable|string|max:255'
+        ]);
+        
+        // Verificar si ya existe una invitación con ese email
+        $existingInvitation = $campaign->invitations()->where('email', $validated['email'])->first();
+        
+        if ($existingInvitation) {
+            return redirect()->back()
+                ->with('error', 'Ya existe una invitación para este email.');
+        }
+        
+        // Crear nueva invitación
+        $invitation = \App\Models\CampaignInvitation::create([
+            'campaign_id' => $campaign->id,
+            'email' => $validated['email'],
+            'name' => $validated['name'],
+            'token' => \Str::random(64),
+            'status' => 'pending',
+        ]);
+        
+        // Enviar email con logging
+        $emailLogger = app(EmailLoggerService::class);
+        $emailLog = $emailLogger->logEmailQueued($campaign, $invitation);
+        
+        try {
+            Mail::to($invitation->email)->queue(
+                new CampaignInvitation($campaign, $invitation)
+            );
+            
+            $emailLogger->logEmailSent($emailLog);
+            $invitation->update(['status' => 'opened']);
+            
+            return redirect()->back()
+                ->with('success', 'Invitación enviada a ' . $invitation->email);
+        } catch (\Exception $e) {
+            $emailLogger->logEmailFailed($emailLog, 'Error sending individual invitation: ' . $e->getMessage(), $e);
+            
+            return redirect()->back()
+                ->with('error', 'Error al enviar la invitación.');
+        }
+    }
+
+    /**
+     * Agregar invitaciones desde CSV
+     */
+    public function addCSVInvitations(Request $request, $campaignId)
+    {
+        $companyId = $request->get('company_id');
+        $campaign = Campaign::where('company_id', $companyId)->findOrFail($campaignId);
+        
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt|max:2048'
+        ]);
+        
+        $emails = [];
+        $handle = fopen($request->file('csv_file')->getPathname(), 'r');
+        
+        // Leer primera línea para ver si tiene encabezados
+        $firstLine = fgetcsv($handle);
+        
+        // Si la primera línea parece ser encabezados, saltarla
+        if (!filter_var($firstLine[0], FILTER_VALIDATE_EMAIL)) {
+            // Es un encabezado, continuar con las siguientes líneas
+        } else {
+            // La primera línea es un email válido, procesarla
+            if (isset($firstLine[0])) $emails[] = ['email' => $firstLine[0], 'name' => $firstLine[1] ?? null];
+        }
+        
+        // Procesar el resto de líneas
+        while (($data = fgetcsv($handle)) !== false) {
+            if (filter_var($data[0], FILTER_VALIDATE_EMAIL)) {
+                $emails[] = [
+                    'email' => $data[0],
+                    'name' => $data[1] ?? null
+                ];
+            }
+        }
+        fclose($handle);
+        
+        $emailLogger = app(EmailLoggerService::class);
+        $addedCount = 0;
+        $skippedCount = 0;
+        
+        foreach ($emails as $emailData) {
+            // Verificar si ya existe
+            $existingInvitation = $campaign->invitations()->where('email', $emailData['email'])->first();
+            
+            if ($existingInvitation) {
+                $skippedCount++;
+                continue;
+            }
+            
+            // Crear invitación
+            $invitation = \App\Models\CampaignInvitation::create([
+                'campaign_id' => $campaign->id,
+                'email' => $emailData['email'],
+                'name' => $emailData['name'],
+                'token' => \Str::random(64),
+                'status' => 'pending',
+            ]);
+            
+            // Log y enviar email
+            $emailLog = $emailLogger->logEmailQueued($campaign, $invitation, 'bulk');
+            
+            try {
+                Mail::to($invitation->email)->queue(
+                    new CampaignInvitation($campaign, $invitation)
+                );
+                
+                $emailLogger->logEmailSent($emailLog);
+                $invitation->update(['status' => 'opened']);
+                $addedCount++;
+            } catch (\Exception $e) {
+                $emailLogger->logEmailFailed($emailLog, 'Error sending CSV invitation: ' . $e->getMessage(), $e);
+            }
+        }
+        
+        $message = "Se agregaron {$addedCount} nuevas invitaciones.";
+        if ($skippedCount > 0) {
+            $message .= " Se omitieron {$skippedCount} emails que ya estaban invitados.";
+        }
+        
+        return redirect()->back()->with('success', $message);
+    }
+
+    /**
+     * Ver logs de emails de una campaña
+     */
+    public function campaignEmailLogs(Request $request, $campaignId)
+    {
+        $companyId = $request->get('company_id');
+        
+        $campaign = Campaign::where('company_id', $companyId)->findOrFail($campaignId);
+        
+        $emailLogs = $campaign->emailLogs()
+            ->with('invitation')
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+            
+        $emailLogger = app(EmailLoggerService::class);
+        $stats = $emailLogger->getCampaignEmailStats($campaign);
+        $recentFailures = $emailLogger->getRecentFailures($campaign, 5);
+        
+        return view('company.campaigns.email-logs', compact('campaign', 'emailLogs', 'stats', 'recentFailures'));
     }
 }

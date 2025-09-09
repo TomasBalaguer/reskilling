@@ -22,6 +22,7 @@ class Campaign extends Model
         'public_link_enabled',
         'public_link_code',
         'access_type',
+        'allow_public_access',
         'settings',
         'status',
     ];
@@ -30,6 +31,7 @@ class Campaign extends Model
         'active_from' => 'datetime',
         'active_until' => 'datetime',
         'public_link_enabled' => 'boolean',
+        'allow_public_access' => 'boolean',
         'settings' => 'array',
         'max_responses' => 'integer',
         'responses_count' => 'integer',
@@ -57,6 +59,11 @@ class Campaign extends Model
     public function invitations()
     {
         return $this->hasMany(CampaignInvitation::class);
+    }
+
+    public function emailLogs()
+    {
+        return $this->hasMany(CampaignEmailLog::class);
     }
 
     // Scopes

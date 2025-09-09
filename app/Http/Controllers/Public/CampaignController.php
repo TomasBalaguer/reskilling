@@ -28,8 +28,12 @@ class CampaignController extends Controller
             return view('public.campaign.not-found', compact('code'));
         }
 
-        // Verificar si la campaña permite acceso público
-        if ($campaign->access_type !== 'public_link') {
+        // Verificar control de acceso - permitir si viene de invitación o si permite acceso público  
+        $sessionKey = 'campaign_' . $campaign->id;
+        $sessionData = Session::get($sessionKey, []);
+        $hasValidInvitation = !empty($sessionData['invitation_token']);
+        
+        if (!$hasValidInvitation && !$campaign->allow_public_access) {
             return view('public.campaign.not-available', compact('campaign'));
         }
 
@@ -76,7 +80,7 @@ class CampaignController extends Controller
     {
         $invitation = CampaignInvitation::with(['campaign.questionnaires', 'campaign.company'])
             ->where('token', $token)
-            ->where('status', 'pending')
+            ->whereIn('status', ['pending', 'opened'])
             ->first();
 
         if (!$invitation) {
@@ -90,11 +94,13 @@ class CampaignController extends Controller
 
         $campaign = $invitation->campaign;
 
-        // Marcar invitación como abierta
-        $invitation->update([
-            'opened_at' => now(),
-            'status' => 'opened'
-        ]);
+        // Marcar invitación como abierta solo si aún está pending
+        if ($invitation->status === 'pending') {
+            $invitation->update([
+                'opened_at' => now(),
+                'status' => 'opened'
+            ]);
+        }
 
         // Crear sesión con info del invitado
         $sessionKey = 'campaign_' . $campaign->id;
@@ -123,6 +129,15 @@ class CampaignController extends Controller
 
         if (!$campaign) {
             return redirect()->route('public.campaign.not-found', $code);
+        }
+
+        // Verificar control de acceso - permitir si viene de invitación o si permite acceso público
+        $sessionKey = 'campaign_' . $campaign->id;
+        $sessionData = Session::get($sessionKey, []);
+        $hasValidInvitation = !empty($sessionData['invitation_token']);
+        
+        if (!$hasValidInvitation && !$campaign->allow_public_access) {
+            return view('public.campaign.not-available', compact('campaign'));
         }
 
         $questionnaire = $campaign->questionnaires()->where('questionnaires.id', $questionnaireId)->first();
@@ -174,6 +189,11 @@ class CampaignController extends Controller
             return redirect()->route('public.campaign.not-found', $code);
         }
 
+        // Verificar si permite acceso público
+        if (!$campaign->allow_public_access) {
+            return view('public.campaign.not-available', compact('campaign'));
+        }
+
         return view('public.campaign.respondent-form', compact('campaign'));
     }
 
@@ -186,6 +206,11 @@ class CampaignController extends Controller
 
         if (!$campaign) {
             return redirect()->route('public.campaign.not-found', $code);
+        }
+
+        // Verificar si permite acceso público
+        if (!$campaign->allow_public_access) {
+            return view('public.campaign.not-available', compact('campaign'));
         }
 
         $validated = $request->validate([
@@ -240,6 +265,13 @@ class CampaignController extends Controller
         // Obtener información del respondente desde la sesión
         $sessionKey = 'campaign_' . $campaign->id;
         $sessionData = Session::get($sessionKey, []);
+        
+        // Verificar control de acceso
+        $hasValidInvitation = !empty($sessionData['invitation_token']);
+        if (!$hasValidInvitation && !$campaign->allow_public_access) {
+            return response()->json(['error' => 'Acceso no autorizado'], 403);
+        }
+        
         $respondentInfo = $sessionData['respondent_info'] ?? null;
 
         if (!$respondentInfo) {

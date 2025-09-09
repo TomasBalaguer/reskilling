@@ -27,6 +27,9 @@ class CampaignResource extends Resource
     protected static ?string $navigationGroup = 'Evaluaciones';
     
     protected static ?int $navigationSort = 1;
+    
+    // Hide from navigation since we're using custom views
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function getEloquentQuery(): Builder
     {
@@ -220,9 +223,10 @@ class CampaignResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListCampaigns::route('/'),
-            'create' => Pages\CreateCampaign::route('/create'),
-            'edit' => Pages\EditCampaign::route('/{record}/edit'),
+            // Disabled Filament pages - using custom views instead
+            // 'index' => Pages\ListCampaigns::route('/'),
+            // 'create' => Pages\CreateCampaign::route('/create'),
+            // 'edit' => Pages\EditCampaign::route('/{record}/edit'),
         ];
     }
 }

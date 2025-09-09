@@ -67,6 +67,10 @@ Route::prefix('company')->name('company.')->middleware('company.auth')->group(fu
     Route::get('/campaigns/{id}', [App\Http\Controllers\Company\CompanyController::class, 'campaignDetail'])->name('campaigns.detail');
     Route::get('/campaigns/{id}/edit', [App\Http\Controllers\Company\CompanyController::class, 'editCampaign'])->name('campaigns.edit');
     Route::put('/campaigns/{id}', [App\Http\Controllers\Company\CompanyController::class, 'updateCampaign'])->name('campaigns.update');
+    Route::post('/campaigns/{id}/resend-invitations', [App\Http\Controllers\Company\CompanyController::class, 'resendInvitations'])->name('campaigns.resend-invitations');
+    Route::post('/campaigns/{id}/add-invitation', [App\Http\Controllers\Company\CompanyController::class, 'addSingleInvitation'])->name('campaigns.add-invitation');
+    Route::post('/campaigns/{id}/add-csv', [App\Http\Controllers\Company\CompanyController::class, 'addCSVInvitations'])->name('campaigns.add-csv');
+    Route::get('/campaigns/{id}/email-logs', [App\Http\Controllers\Company\CompanyController::class, 'campaignEmailLogs'])->name('campaigns.email-logs');
     Route::patch('/campaigns/{id}/toggle-status', [App\Http\Controllers\Company\CompanyController::class, 'toggleCampaignStatus'])->name('campaigns.toggle-status');
     Route::get('/campaigns/{id}/export', [App\Http\Controllers\Company\CompanyController::class, 'exportCampaignData'])->name('campaigns.export');
     
