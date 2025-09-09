@@ -138,14 +138,23 @@ class ProcessQuestionnaireAudioJob implements ShouldQueue
                         $response->update(['processing_status' => 'transcribing']);
                         
                         // Analizar audio con Gemini
+                        Log::info("🔍 Llamando a Gemini API", [
+                            'question_id' => $questionId,
+                            'audio_path' => $audioPath,
+                            'file_size' => file_exists($audioPath) ? filesize($audioPath) : 0,
+                            'question_text_preview' => substr($questionText, 0, 50) . '...'
+                        ]);
+                        
                         $analysis = $aiService->analyzeAudioWithGemini($audioPath, $questionText);
                         
                         Log::info("📝 Resultado del análisis", [
                             'question_id' => $questionId,
-                            'analysis_keys' => array_keys($analysis),
+                            'analysis_type' => gettype($analysis),
+                            'analysis_keys' => is_array($analysis) ? array_keys($analysis) : 'not_array',
                             'has_transcripcion' => isset($analysis['transcripcion']),
                             'has_metricas' => isset($analysis['metricas_prosodicas']),
-                            'has_error' => isset($analysis['error'])
+                            'has_error' => isset($analysis['error']),
+                            'full_analysis' => $analysis // Log completo para debugging
                         ]);
                         
                         // Actualizar respuesta con transcripción y análisis

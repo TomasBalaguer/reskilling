@@ -270,8 +270,28 @@ class AIInterpretationService
                 'payload_structure' => [
                     'contents_count' => count($data['contents']),
                     'parts_count' => count($data['contents'][0]['parts']),
-                    'generation_config' => $data['generationConfig']
-                ]
+                    'generation_config' => $data['generationConfig'],
+                    'mime_type' => $mimeType,
+                    'audio_data_size_mb' => round(strlen($audioData) / 1024 / 1024, 2),
+                    'prompt_preview' => substr($analysisPrompt, 0, 200) . '...'
+                ],
+                'full_payload_without_audio' => array_merge($data, [
+                    'contents' => [
+                        [
+                            'parts' => [
+                                [
+                                    'inline_data' => [
+                                        'mime_type' => $mimeType,
+                                        'data' => '[AUDIO_DATA_' . round(strlen($audioData) / 1024, 1) . 'KB]'
+                                    ]
+                                ],
+                                [
+                                    'text' => $analysisPrompt
+                                ]
+                            ]
+                        ]
+                    ]
+                ])
             ]);
             
             // Realizar solicitud con timeout extendido para audio
@@ -351,12 +371,30 @@ class AIInterpretationService
                 
             } else {
                 $errorBody = $response->body();
+                $errorJson = $response->json();
+                
                 Log::error('❌ ERROR EN RESPUESTA DE GEMINI API', [
                     'status_code' => $response->status(),
                     'error_body' => $errorBody,
-                    'headers' => $response->headers()
+                    'error_json' => $errorJson,
+                    'headers' => $response->headers(),
+                    'request_details' => [
+                        'url' => $url,
+                        'mime_type_sent' => $mimeType,
+                        'audio_size_mb' => round(strlen($audioData) / 1024 / 1024, 2),
+                        'prompt_length' => strlen($analysisPrompt)
+                    ]
                 ]);
-                throw new \Exception('Error en análisis de audio: ' . $response->status() . ' - ' . $errorBody);
+                
+                // Extraer mensaje de error específico si está disponible
+                $errorMessage = 'Error en análisis de audio: ' . $response->status();
+                if ($errorJson && isset($errorJson['error']['message'])) {
+                    $errorMessage .= ' - ' . $errorJson['error']['message'];
+                } else {
+                    $errorMessage .= ' - ' . $errorBody;
+                }
+                
+                throw new \Exception($errorMessage);
             }
             
         } catch (\Exception $e) {

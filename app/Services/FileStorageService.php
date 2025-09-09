@@ -70,6 +70,7 @@ class FileStorageService
      */
     public function getAudioUrl(string $path, int $expirationMinutes = 60): string
     {
+        // El disco audio-storage ya tiene root => 'audio', no necesitamos prefijo adicional
         return Storage::disk('audio-storage')->temporaryUrl($path, now()->addMinutes($expirationMinutes));
     }
 
@@ -110,8 +111,30 @@ class FileStorageService
      */
     public function downloadAudioForProcessing(string $path): string
     {
+        // El disco audio-storage ya tiene root => 'audio', no necesitamos prefijo adicional
+        \Log::info('📥 Descargando audio desde S3', [
+            'path' => $path,
+            'disk' => 'audio-storage (root: audio/)'
+        ]);
+        
+        // Verificar que el archivo existe
+        if (!Storage::disk('audio-storage')->exists($path)) {
+            \Log::error('❌ Archivo de audio no existe en S3', [
+                'path' => $path,
+                'disk' => 'audio-storage',
+                'full_s3_path' => 'audio/' . $path
+            ]);
+            throw new \Exception("Audio file not found in S3: {$path}");
+        }
+        
         $tempFile = sys_get_temp_dir() . '/' . Str::uuid() . '.tmp';
         file_put_contents($tempFile, Storage::disk('audio-storage')->get($path));
+        
+        \Log::info('✅ Audio descargado exitosamente', [
+            'path' => $path,
+            'temp_file' => $tempFile,
+            'file_size' => filesize($tempFile)
+        ]);
         
         return $tempFile;
     }
