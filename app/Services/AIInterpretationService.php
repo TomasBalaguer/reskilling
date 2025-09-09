@@ -461,17 +461,55 @@ Responde SOLO con el JSON, sin texto adicional.";
      */
     private function extractJsonFromResponse(string $response): ?array
     {
-        // Buscar el primer { y el último } para extraer el JSON
-        $startPos = strpos($response, '{');
-        $endPos = strrpos($response, '}');
+        Log::info('🧹 LIMPIANDO RESPUESTA DE GEMINI', [
+            'raw_length' => strlen($response),
+            'contains_json_markers' => str_contains($response, '```json'),
+            'contains_backticks' => str_contains($response, '```')
+        ]);
         
-        if ($startPos !== false && $endPos !== false && $endPos > $startPos) {
-            $jsonString = substr($response, $startPos, $endPos - $startPos + 1);
-            $decoded = json_decode($jsonString, true);
+        // Primero, intentar extraer JSON de bloques de markdown
+        if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $response, $matches)) {
+            Log::info('✂️ JSON extraído de bloque markdown');
+            $jsonString = trim($matches[1]);
+        } else {
+            // Fallback: buscar el primer { y el último } para extraer el JSON
+            $startPos = strpos($response, '{');
+            $endPos = strrpos($response, '}');
             
-            if (json_last_error() === JSON_ERROR_NONE) {
-                return $decoded;
+            if ($startPos !== false && $endPos !== false && $endPos > $startPos) {
+                $jsonString = substr($response, $startPos, $endPos - $startPos + 1);
+                Log::info('✂️ JSON extraído por posición de llaves');
+            } else {
+                Log::error('❌ No se pudo encontrar JSON válido en la respuesta');
+                return null;
             }
+        }
+        
+        Log::info('🔍 JSON EXTRAÍDO', [
+            'json_length' => strlen($jsonString),
+            'json_preview' => substr($jsonString, 0, 100) . '...'
+        ]);
+        
+        // Limpiar caracteres problemáticos
+        $jsonString = trim($jsonString);
+        $jsonString = preg_replace('/[\x00-\x1F\x7F]/', '', $jsonString); // Remover caracteres de control
+        
+        // Intentar decodificar
+        $decoded = json_decode($jsonString, true);
+        
+        if (json_last_error() === JSON_ERROR_NONE) {
+            Log::info('✅ JSON DECODIFICADO EXITOSAMENTE', [
+                'keys' => array_keys($decoded),
+                'has_transcripcion' => isset($decoded['transcripcion']),
+                'has_prosodic' => isset($decoded['metricas_prosodicas']),
+                'has_emotional' => isset($decoded['analisis_emocional'])
+            ]);
+            return $decoded;
+        } else {
+            Log::error('❌ ERROR DECODIFICANDO JSON LIMPIO', [
+                'json_error' => json_last_error_msg(),
+                'cleaned_json' => $jsonString
+            ]);
         }
         
         return null;
