@@ -520,12 +520,22 @@ Responde SOLO con el JSON, sin texto adicional.";
             ]);
             
             // Limpiar el MIME type detectado
-            if ($detectedMime && str_contains($detectedMime, 'audio/')) {
+            if ($detectedMime) {
                 // Clean up MIME type - remove codec specifications
                 if (str_contains($detectedMime, ';')) {
                     $detectedMime = explode(';', $detectedMime)[0];
                 }
-                return $detectedMime;
+                
+                // Si es video/mp4, convertir a audio/mp4 (es común en archivos de audio)
+                if ($detectedMime === 'video/mp4') {
+                    Log::info('🔄 Convirtiendo video/mp4 a audio/mp4 para archivo de audio');
+                    return 'audio/mp4';
+                }
+                
+                // Si es un formato de audio válido
+                if (str_contains($detectedMime, 'audio/')) {
+                    return $detectedMime;
+                }
             }
             
             // Si no se puede detectar, asumir MP4 (más común desde el frontend)

@@ -23,16 +23,29 @@ class FileStorageService
         // If no extension, try to guess from mime type
         if (empty($extension)) {
             $mimeType = $file->getMimeType();
+            
+            // Clean up MIME type - remove codec specifications
+            if (str_contains($mimeType, ';')) {
+                $mimeType = explode(';', $mimeType)[0];
+            }
+            
             if (str_contains($mimeType, 'webm')) {
                 $extension = 'webm';
-            } elseif (str_contains($mimeType, 'mp3')) {
+            } elseif (str_contains($mimeType, 'mp4')) {
+                $extension = 'mp4';  // Agregar soporte para MP4 (video/mp4 o audio/mp4)
+            } elseif (str_contains($mimeType, 'mp3') || str_contains($mimeType, 'mpeg')) {
                 $extension = 'mp3';
             } elseif (str_contains($mimeType, 'wav')) {
                 $extension = 'wav';
             } elseif (str_contains($mimeType, 'ogg')) {
                 $extension = 'ogg';
             } else {
-                $extension = 'webm'; // default for web recordings
+                // Default basado en el tipo real detectado
+                \Log::warning('Unknown MIME type for audio file', [
+                    'mime_type' => $mimeType,
+                    'defaulting_to' => 'mp4'
+                ]);
+                $extension = 'mp4'; // Cambiar default a MP4 en lugar de WebM
             }
         }
         
