@@ -104,14 +104,14 @@
     <!-- Respuestas del cuestionario -->
     @if($response->questionnaire)
         <div class="card mb-4">
-            <div class="card-header">
+            <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">
-                    <i class="fas fa-clipboard-list"></i> Respuestas del Cuestionario
+                    <i class="fas fa-clipboard-list"></i> Análisis Detallado de Respuestas
                 </h5>
             </div>
             <div class="card-body">
                 @php
-                    // Obtener preguntas del cuestionario usando buildStructure()
+                    // Obtener preguntas del cuestionario
                     $questionnaire = $response->questionnaire;
                     $questions = [];
                     if ($questionnaire) {
@@ -124,124 +124,339 @@
                             }
                         }
                     }
-                    $responses = $response->processed_responses ?? $response->raw_responses ?? [];
-                    $hasResponses = !empty($responses);
+                    
+                    // Obtener respuestas y análisis
+                    $allResponses = $response->responses ?? [];
+                    $transcriptions = $response->transcriptions ?? [];
+                    $prosodicAnalysis = $response->prosodic_analysis ?? [];
                 @endphp
                 
-                @if(count($questions) > 0 && $hasResponses)
-                    
+                @if(count($questions) > 0)
+                    @php $questionNumber = 1; @endphp
                     @foreach($questions as $questionId => $questionData)
-                        @if(isset($responses[$questionId]))
-                            <div class="border-bottom pb-4 mb-4">
-                                <!-- Pregunta -->
-                                <div class="mb-3">
-                                    <h6 class="text-primary mb-2">
-                                        <i class="fas fa-question-circle"></i> Pregunta {{ strtoupper($questionId) }}
-                                    </h6>
-                                    <div class="bg-light p-3 rounded">
-                                        <em>{{ is_array($questionData) ? ($questionData['text'] ?? $questionData) : $questionData }}</em>
-                                    </div>
+                        <div class="question-block mb-5 pb-4 border-bottom">
+                            <!-- PREGUNTA -->
+                            <div class="mb-3">
+                                <h5 class="text-primary">
+                                    <span class="badge bg-primary me-2">{{ $questionNumber }}</span>
+                                    Pregunta
+                                </h5>
+                                <div class="bg-light p-3 rounded">
+                                    <strong>{{ is_array($questionData) ? ($questionData['text'] ?? $questionData) : $questionData }}</strong>
                                 </div>
+                            </div>
+                            
+                            <!-- RESPUESTA TRANSCRITA -->
+                            @if(isset($transcriptions[$questionId]) || isset($allResponses[$questionId]['transcription_text']))
+                                @php
+                                    $transcription = $transcriptions[$questionId] ?? $allResponses[$questionId]['transcription_text'] ?? '';
+                                @endphp
                                 
-                                <!-- Respuesta -->
-                                <div class="mb-2">
-                                    <h6 class="text-success mb-2">
-                                        <i class="fas fa-microphone"></i> Respuesta (Audio transcrito)
-                                    </h6>
-                                    @php
-                                        $responseText = '';
-                                        $audioDuration = null;
-                                        
-                                        // Intentar obtener transcripción del campo transcriptions
-                                        if ($response->transcriptions && isset($response->transcriptions[$questionId])) {
-                                            $responseText = $response->transcriptions[$questionId];
-                                        }
-                                        
-                                        // Si no hay transcripción, obtener de responses procesadas/raw
-                                        if (empty($responseText)) {
-                                            $responseData = $responses[$questionId];
-                                            if (is_array($responseData)) {
-                                                $responseText = $responseData['transcription'] ?? 
-                                                               $responseData['raw_response'] ?? 
-                                                               (isset($responseData['processed_response']['text']) ? 
-                                                                   $responseData['processed_response']['text'] : 
-                                                                   'No se encontró transcripción');
-                                            } else {
-                                                $responseText = $responseData;
-                                            }
-                                        }
-                                        
-                                        // Obtener duración del audio
-                                        if (isset($responses[$questionId]['audio_duration'])) {
-                                            $audioDuration = $responses[$questionId]['audio_duration'];
-                                        } elseif ($response->raw_responses && isset($response->raw_responses[$questionId]['audio_duration'])) {
-                                            $audioDuration = $response->raw_responses[$questionId]['audio_duration'];
-                                        }
-                                    @endphp
-                                    
-                                    <div class="alert alert-success" role="alert">
-                                        <strong>{{ $response->respondent_name }}:</strong> "{{ $responseText }}"
+                                @if($transcription)
+                                    <div class="mb-3">
+                                        <h6 class="text-success">
+                                            <i class="fas fa-microphone"></i> Respuesta Transcrita
+                                        </h6>
+                                        <div class="alert alert-light border" role="alert">
+                                            <em>"{{ $transcription }}"</em>
+                                        </div>
                                     </div>
-                                </div>
-                                
-                                <!-- Duración de audio si está disponible -->
-                                @if($audioDuration)
-                                    <small class="text-muted">
-                                        <i class="fas fa-clock"></i> Duración del audio: {{ $audioDuration }} segundos
-                                    </small>
                                 @endif
-                            </div>
-                        @endif
-                    @endforeach
-                @elseif(count($questions) > 0)
-                    <!-- Mostrar preguntas sin respuestas cuando están pendientes -->
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> 
-                        <strong>Respuesta en procesamiento.</strong> 
-                        Las respuestas de audio están siendo transcritas y analizadas.
-                    </div>
-                    
-                    @foreach($questions as $questionId => $questionData)
-                        <div class="border-bottom pb-3 mb-3">
-                            <h6 class="text-primary mb-2">
-                                <i class="fas fa-question-circle"></i> Pregunta {{ strtoupper($questionId) }}
-                            </h6>
-                            <div class="bg-light p-3 rounded">
-                                <em>{{ is_array($questionData) ? ($questionData['text'] ?? $questionData) : $questionData }}</em>
-                            </div>
-                            <div class="mt-2 text-muted">
-                                <i class="fas fa-hourglass-half"></i> Esperando transcripción de audio...
-                            </div>
+                            @endif
+                            
+                            <!-- ANÁLISIS PROSÓDICO -->
+                            @if(isset($prosodicAnalysis[$questionId]) || isset($allResponses[$questionId]['gemini_analysis']))
+                                @php
+                                    $analysis = $prosodicAnalysis[$questionId] ?? $allResponses[$questionId]['gemini_analysis'] ?? null;
+                                @endphp
+                                
+                                @if($analysis)
+                                    <div class="mb-3">
+                                        <h6 class="text-info">
+                                            <i class="fas fa-chart-line"></i> Análisis de la Respuesta
+                                        </h6>
+                                        
+                                        <div class="row">
+                                            <!-- Análisis Emocional -->
+                                            @if(isset($analysis['analisis_emocional']))
+                                                <div class="col-md-6 mb-3">
+                                                    <div class="card h-100">
+                                                        <div class="card-header bg-light">
+                                                            <strong>Estado Emocional</strong>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            @php $emociones = $analysis['analisis_emocional']; @endphp
+                                                            
+                                                            <div class="mb-2">
+                                                                <strong>Emoción dominante:</strong> 
+                                                                <span class="badge bg-success">{{ ucfirst($emociones['emocion_dominante'] ?? 'N/A') }}</span>
+                                                            </div>
+                                                            
+                                                            @foreach(['felicidad' => 'success', 'tristeza' => 'info', 'ansiedad' => 'warning', 'enojo' => 'danger', 'miedo' => 'secondary'] as $emocion => $color)
+                                                                @if(isset($emociones[$emocion]))
+                                                                    <div class="mb-2">
+                                                                        <small>{{ ucfirst($emocion) }}:</small>
+                                                                        <div class="progress" style="height: 20px;">
+                                                                            <div class="progress-bar bg-{{ $color }}" 
+                                                                                 style="width: {{ $emociones[$emocion] * 100 }}%">
+                                                                                {{ round($emociones[$emocion] * 100) }}%
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endif
+                                            
+                                            <!-- Indicadores Psicológicos -->
+                                            @if(isset($analysis['indicadores_psicologicos']))
+                                                <div class="col-md-6 mb-3">
+                                                    <div class="card h-100">
+                                                        <div class="card-header bg-light">
+                                                            <strong>Indicadores Psicológicos</strong>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            @php $indicadores = $analysis['indicadores_psicologicos']; @endphp
+                                                            
+                                                            @foreach($indicadores as $indicador => $valor)
+                                                                <div class="mb-2">
+                                                                    <small>{{ ucfirst(str_replace('_', ' ', $indicador)) }}:</small>
+                                                                    <div class="progress" style="height: 20px;">
+                                                                        <div class="progress-bar bg-primary" 
+                                                                             style="width: {{ $valor * 100 }}%">
+                                                                            {{ round($valor * 100) }}%
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        </div>
+                                        
+                                        <!-- Métricas del Habla -->
+                                        @if(isset($analysis['metricas_prosodicas']))
+                                            <div class="card mb-3">
+                                                <div class="card-header bg-light">
+                                                    <strong>Características del Habla</strong>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="row">
+                                                        @php $metricas = $analysis['metricas_prosodicas']; @endphp
+                                                        
+                                                        <div class="col-md-3">
+                                                            <strong>Velocidad:</strong> 
+                                                            <span class="badge bg-info">{{ ucfirst($metricas['velocidad_habla'] ?? 'N/A') }}</span>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <strong>Variación tonal:</strong> 
+                                                            <span class="badge bg-info">{{ ucfirst($metricas['variacion_tonal'] ?? 'N/A') }}</span>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <strong>Titubeos:</strong> 
+                                                            <span class="badge bg-{{ ($metricas['titubeos'] ?? 0) > 2 ? 'warning' : 'success' }}">
+                                                                {{ $metricas['titubeos'] ?? 0 }}
+                                                            </span>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <strong>Pausas largas:</strong> 
+                                                            <span class="badge bg-{{ ($metricas['pausas_significativas'] ?? 0) > 2 ? 'warning' : 'success' }}">
+                                                                {{ $metricas['pausas_significativas'] ?? 0 }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    @if(isset($metricas['claridad_diccion']))
+                                                        <div class="mt-2">
+                                                            <strong>Claridad de dicción:</strong>
+                                                            <div class="progress" style="height: 20px;">
+                                                                <div class="progress-bar bg-success" 
+                                                                     style="width: {{ $metricas['claridad_diccion'] * 100 }}%">
+                                                                    {{ round($metricas['claridad_diccion'] * 100) }}%
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @endif
+                                        
+                                        <!-- Observaciones -->
+                                        @if(isset($analysis['observaciones']) && $analysis['observaciones'])
+                                            <div class="alert alert-info">
+                                                <strong>Observaciones:</strong> {{ $analysis['observaciones'] }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
+                            @endif
+                            
+                            <!-- Audio Player -->
+                            @php
+                                $audioUrl = null;
+                                if ($response->audio_files && isset($response->audio_files[$questionId])) {
+                                    $audioFile = $response->audio_files[$questionId];
+                                    if (is_array($audioFile) && isset($audioFile['s3_path'])) {
+                                        try {
+                                            $audioUrl = \Storage::disk('audio-storage')->temporaryUrl(
+                                                $audioFile['s3_path'],
+                                                now()->addMinutes(30)
+                                            );
+                                        } catch (\Exception $e) {
+                                            // Fallback
+                                        }
+                                    }
+                                }
+                            @endphp
+                            
+                            @if($audioUrl)
+                                <div class="mt-3">
+                                    <audio controls class="w-100" style="max-width: 500px;">
+                                        <source src="{{ $audioUrl }}" type="audio/mp4">
+                                        <source src="{{ $audioUrl }}" type="audio/mpeg">
+                                    </audio>
+                                </div>
+                            @endif
                         </div>
+                        @php $questionNumber++; @endphp
                     @endforeach
                 @else
-                    <div class="alert alert-warning">
-                        No se encontraron las preguntas del cuestionario.
-                    </div>
+                    @if(count($questions) > 0)
+                        <!-- Mostrar preguntas sin respuestas cuando están pendientes -->
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>Respuesta en procesamiento.</strong> 
+                            Las respuestas de audio están siendo transcritas y analizadas.
+                        </div>
+                        
+                        @foreach($questions as $questionId => $questionData)
+                            <div class="border-bottom pb-3 mb-3">
+                                <h6 class="text-primary mb-2">
+                                    <i class="fas fa-question-circle"></i> Pregunta {{ strtoupper($questionId) }}
+                                </h6>
+                                <div class="bg-light p-3 rounded">
+                                    <em>{{ is_array($questionData) ? ($questionData['text'] ?? $questionData) : $questionData }}</em>
+                                </div>
+                                <div class="mt-2 text-muted">
+                                    <i class="fas fa-hourglass-half"></i> Esperando transcripción de audio...
+                                </div>
+                            </div>
+                        @endforeach
+                    @else
+                        <div class="alert alert-warning">
+                            No se encontraron las preguntas del cuestionario.
+                        </div>
+                    @endif
                 @endif
             </div>
         </div>
     @endif
 
 
-    <!-- Reporte Comprehensivo -->
+    <!-- Reporte Comprehensivo con 15 Competencias -->
     @if($response->comprehensive_report)
         <div class="card mb-4 border-success">
             <div class="card-header bg-success text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-file-medical-alt"></i> Reporte Psicológico Profesional
-                </h5>
-                <small>Análisis completo y detallado basado en las respuestas y transcripciones de audio</small>
+                <h4 class="mb-0">
+                    <i class="fas fa-file-medical-alt"></i> Reporte Psicológico Profesional - Análisis de Competencias
+                </h4>
+                <small>Evaluación integral de habilidades blandas basada en las respuestas y análisis prosódico</small>
             </div>
             <div class="card-body">
                 @if(isset($response->comprehensive_report['sections']) && count($response->comprehensive_report['sections']) > 0)
                     @foreach($response->comprehensive_report['sections'] as $section)
-                        <div class="mb-4">
-                            <h5 class="text-primary border-bottom pb-2">{{ $section['title'] }}</h5>
-                            <div class="content-section">
-                                {!! nl2br(e($section['content'])) !!}
+                        @if(str_contains(strtolower($section['title']), 'competencias'))
+                            <!-- Sección especial para competencias -->
+                            <div class="mb-5">
+                                <h4 class="text-primary border-bottom pb-2 mb-4">
+                                    <i class="fas fa-star"></i> {{ $section['title'] }}
+                                </h4>
+                                
+                                @php
+                                    // Parsear las competencias del contenido
+                                    $competencias = [];
+                                    $lines = explode("\n", $section['content']);
+                                    $currentCompetencia = null;
+                                    
+                                    foreach($lines as $line) {
+                                        // Detectar líneas que empiezan con número y tienen un puntaje
+                                        if (preg_match('/^(\d+)\.\s*\*\*(.+?)\*\*:\s*(\d+)\/10\s*[-–]\s*(.+)$/i', $line, $matches)) {
+                                            $competencias[] = [
+                                                'numero' => $matches[1],
+                                                'nombre' => $matches[2],
+                                                'puntaje' => $matches[3],
+                                                'descripcion' => $matches[4]
+                                            ];
+                                        } elseif (preg_match('/^(\d+)\.\s*(.+?):\s*(\d+)\/10\s*[-–]\s*(.+)$/i', $line, $matches)) {
+                                            $competencias[] = [
+                                                'numero' => $matches[1],
+                                                'nombre' => $matches[2],
+                                                'puntaje' => $matches[3],
+                                                'descripcion' => $matches[4]
+                                            ];
+                                        }
+                                    }
+                                @endphp
+                                
+                                @if(count($competencias) > 0)
+                                    <div class="row">
+                                        @foreach($competencias as $comp)
+                                            <div class="col-md-6 mb-4">
+                                                <div class="card h-100 shadow-sm">
+                                                    <div class="card-header bg-light">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <h6 class="mb-0">
+                                                                <span class="badge bg-primary me-2">{{ $comp['numero'] }}</span>
+                                                                {{ $comp['nombre'] }}
+                                                            </h6>
+                                                            <span class="badge bg-{{ $comp['puntaje'] >= 8 ? 'success' : ($comp['puntaje'] >= 5 ? 'warning' : 'danger') }} fs-6">
+                                                                {{ $comp['puntaje'] }}/10
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="progress mb-2" style="height: 10px;">
+                                                            <div class="progress-bar bg-{{ $comp['puntaje'] >= 8 ? 'success' : ($comp['puntaje'] >= 5 ? 'warning' : 'danger') }}" 
+                                                                 style="width: {{ $comp['puntaje'] * 10 }}%"></div>
+                                                        </div>
+                                                        <small class="text-muted">{{ $comp['descripcion'] }}</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <!-- Si no se puede parsear, mostrar el contenido tal cual -->
+                                    <div class="content-section">
+                                        {!! nl2br(e($section['content'])) !!}
+                                    </div>
+                                @endif
                             </div>
-                        </div>
+                        @else
+                            <!-- Otras secciones del reporte -->
+                            <div class="mb-4">
+                                <h5 class="text-primary border-bottom pb-2">
+                                    @if(str_contains(strtolower($section['title']), 'personalidad'))
+                                        <i class="fas fa-user-circle"></i>
+                                    @elseif(str_contains(strtolower($section['title']), 'fuerte'))
+                                        <i class="fas fa-thumbs-up"></i>
+                                    @elseif(str_contains(strtolower($section['title']), 'desarrollar'))
+                                        <i class="fas fa-chart-line"></i>
+                                    @elseif(str_contains(strtolower($section['title']), 'propuesta') || str_contains(strtolower($section['title']), 'skilling'))
+                                        <i class="fas fa-graduation-cap"></i>
+                                    @else
+                                        <i class="fas fa-info-circle"></i>
+                                    @endif
+                                    {{ $section['title'] }}
+                                </h5>
+                                <div class="content-section">
+                                    {!! nl2br(e($section['content'])) !!}
+                                </div>
+                            </div>
+                        @endif
                     @endforeach
                 @else
                     <div class="content-report">
@@ -257,6 +472,10 @@
                     </small>
                 @endif
             </div>
+        </div>
+    @elseif($response->processing_status === 'analyzed' || $response->ai_analysis_status === 'completed')
+        <div class="alert alert-info">
+            <i class="fas fa-spinner fa-spin"></i> El reporte comprehensivo con las 15 competencias está siendo generado...
         </div>
     @endif
 
@@ -342,6 +561,17 @@
 }
 .card.border-secondary {
     border: 1px solid #dee2e6 !important;
+}
+/* Estilos para el reproductor de audio */
+audio {
+    height: 40px;
+    border-radius: 5px;
+}
+audio::-webkit-media-controls-panel {
+    background-color: #f8f9fa;
+}
+.gap-3 {
+    gap: 1rem !important;
 }
 </style>
 @endsection
