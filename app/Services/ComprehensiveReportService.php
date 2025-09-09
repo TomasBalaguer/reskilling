@@ -54,6 +54,31 @@ class ComprehensiveReportService
      */
     private function gatherReportData(CampaignResponse $response): array
     {
+        // Decode responses field if it's a string
+        $responses = is_string($response->responses) ? json_decode($response->responses, true) : $response->responses;
+        
+        // Extract transcriptions from responses field
+        $transcriptions = [];
+        if (!empty($responses)) {
+            foreach ($responses as $questionId => $questionResponse) {
+                if (isset($questionResponse['transcription_text'])) {
+                    $transcriptions[$questionId] = $questionResponse['transcription_text'];
+                }
+            }
+        }
+        
+        // If no transcriptions found in responses, try the transcriptions field
+        if (empty($transcriptions)) {
+            $transcriptions = is_string($response->transcriptions) ? json_decode($response->transcriptions, true) : $response->transcriptions;
+        }
+        
+        // Decode other JSON fields properly
+        $aiAnalysis = is_string($response->ai_analysis) ? json_decode($response->ai_analysis, true) : $response->ai_analysis;
+        $prosodicAnalysis = is_string($response->prosodic_analysis) ? json_decode($response->prosodic_analysis, true) : $response->prosodic_analysis;
+        $questionnaireScores = is_string($response->questionnaire_scores) ? json_decode($response->questionnaire_scores, true) : $response->questionnaire_scores;
+        $rawResponses = is_string($response->raw_responses) ? json_decode($response->raw_responses, true) : $response->raw_responses;
+        $processedResponses = is_string($response->processed_responses) ? json_decode($response->processed_responses, true) : $response->processed_responses;
+        
         $data = [
             'respondent_info' => [
                 'name' => $response->respondent_name,
@@ -67,13 +92,14 @@ class ComprehensiveReportService
                 'questionnaire_type' => $response->questionnaire?->questionnaire_type?->value
             ],
             'responses' => [
-                'raw_responses' => $response->raw_responses,
-                'processed_responses' => $response->processed_responses
+                'raw_responses' => $rawResponses,
+                'processed_responses' => $processedResponses,
+                'full_responses' => $responses  // Include full responses data
             ],
-            'ai_analysis' => $response->ai_analysis,
-            'transcriptions' => $response->transcriptions,
-            'prosodic_analysis' => $response->prosodic_analysis,
-            'questionnaire_scores' => $response->questionnaire_scores
+            'ai_analysis' => $aiAnalysis,
+            'transcriptions' => $transcriptions,
+            'prosodic_analysis' => $prosodicAnalysis,
+            'questionnaire_scores' => $questionnaireScores
         ];
 
         return $data;
@@ -141,32 +167,63 @@ class ComprehensiveReportService
         $prompt .= "- **Empresa**: {$reportData['campaign_info']['company']}\n";
         $prompt .= "- **Tipo de evaluación**: {$reportData['campaign_info']['questionnaire_type']}\n\n";
 
-        // Añadir respuestas del cuestionario
-        if (!empty($reportData['responses']['raw_responses'])) {
-            $prompt .= "## RESPUESTAS DEL CUESTIONARIO\n";
-            foreach ($reportData['responses']['raw_responses'] as $questionId => $answer) {
-                $prompt .= "**Pregunta {$questionId}**: " . (is_array($answer) ? json_encode($answer) : $answer) . "\n\n";
+        // Map question IDs to actual questions for reflective questions
+        $questionTexts = [
+            'reflective_questions_q1' => 'Si pudieras mandarle un mensaje a vos mismo/a hace unos años, ¿qué le dirías? Imaginate que estás hablando con vos mismo/a cuando recién empezabas a estudiar o trabajar.',
+            'reflective_questions_q2' => 'Imaginate que te contratan para el trabajo de tus sueños pero tenés que mudarte a otro país donde no conocés a nadie. ¿Cómo te sentirías y qué harías?',
+            'reflective_questions_q3' => 'Si tuvieras que elegir entre un trabajo que paga muy bien pero no te gusta, y otro que te apasiona pero paga menos, ¿cuál elegirías y por qué?',
+            'reflective_questions_q4' => 'Contame sobre alguna vez que hayas tenido que tomar una decisión difícil. ¿Cómo la tomaste y qué aprendiste de esa experiencia?',
+            'reflective_questions_q5' => '¿Cómo reaccionás cuando las cosas no salen como las planeaste? Dame un ejemplo de alguna situación así.',
+            'reflective_questions_q6' => 'Si tuvieras recursos ilimitados para crear un proyecto que ayude a otros, ¿qué harías y por qué?',
+            'reflective_questions_q7' => '¿Qué es lo que más te motiva en la vida? ¿Cómo mantenés esa motivación cuando enfrentás obstáculos?'
+        ];
+
+        // Añadir transcripciones con las preguntas completas
+        if (!empty($reportData['transcriptions'])) {
+            $prompt .= "## RESPUESTAS TRANSCRITAS DEL CANDIDATO\n\n";
+            foreach ($reportData['transcriptions'] as $questionId => $transcription) {
+                $questionText = $questionTexts[$questionId] ?? "Pregunta {$questionId}";
+                $prompt .= "**Pregunta**: {$questionText}\n";
+                $prompt .= "**Respuesta**: {$transcription}\n\n";
             }
         }
 
-        // Añadir análisis de IA existente si está disponible
-        if (!empty($reportData['ai_analysis'])) {
-            $prompt .= "## ANÁLISIS PREVIO DISPONIBLE\n";
-            $prompt .= json_encode($reportData['ai_analysis'], JSON_PRETTY_PRINT) . "\n\n";
-        }
-
-        // Añadir transcripciones si están disponibles
-        if (!empty($reportData['transcriptions'])) {
-            $prompt .= "## TRANSCRIPCIONES DE RESPUESTAS DE AUDIO\n";
-            foreach ($reportData['transcriptions'] as $questionId => $transcription) {
-                $prompt .= "**Pregunta {$questionId}**: {$transcription}\n\n";
+        // Si las transcripciones están en full_responses, extraerlas de ahí
+        if (empty($reportData['transcriptions']) && !empty($reportData['responses']['full_responses'])) {
+            $prompt .= "## RESPUESTAS TRANSCRITAS DEL CANDIDATO\n\n";
+            foreach ($reportData['responses']['full_responses'] as $questionId => $questionData) {
+                if (isset($questionData['transcription_text'])) {
+                    $questionText = $questionTexts[$questionId] ?? "Pregunta {$questionId}";
+                    $prompt .= "**Pregunta**: {$questionText}\n";
+                    $prompt .= "**Respuesta**: {$questionData['transcription_text']}\n\n";
+                }
             }
         }
 
         // Añadir análisis prosódico si está disponible
         if (!empty($reportData['prosodic_analysis'])) {
-            $prompt .= "## ANÁLISIS PROSÓDICO\n";
-            $prompt .= json_encode($reportData['prosodic_analysis'], JSON_PRETTY_PRINT) . "\n\n";
+            $prompt .= "## ANÁLISIS PROSÓDICO DE LAS RESPUESTAS\n\n";
+            foreach ($reportData['prosodic_analysis'] as $questionId => $analysis) {
+                $prompt .= "**{$questionId}**:\n";
+                if (is_array($analysis)) {
+                    foreach ($analysis as $key => $value) {
+                        $prompt .= "- {$key}: {$value}\n";
+                    }
+                }
+                $prompt .= "\n";
+            }
+        }
+
+        // Añadir análisis de IA previo si está disponible
+        if (!empty($reportData['ai_analysis'])) {
+            $prompt .= "## ANÁLISIS EMOCIONAL Y DE PERSONALIDAD\n";
+            if (isset($reportData['ai_analysis']['emotional_analysis'])) {
+                $prompt .= json_encode($reportData['ai_analysis']['emotional_analysis'], JSON_PRETTY_PRINT) . "\n\n";
+            }
+            if (isset($reportData['ai_analysis']['soft_skills_analysis'])) {
+                $prompt .= "### Análisis de Habilidades Blandas:\n";
+                $prompt .= json_encode($reportData['ai_analysis']['soft_skills_analysis'], JSON_PRETTY_PRINT) . "\n\n";
+            }
         }
 
         $prompt .= "## FORMATO REQUERIDO DEL REPORTE\n\n";

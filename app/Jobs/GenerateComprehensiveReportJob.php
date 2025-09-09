@@ -100,49 +100,10 @@ class GenerateComprehensiveReportJob implements ShouldQueue
         // Use ComprehensiveReportService for AI-powered report generation
         $reportService = app(\App\Services\ComprehensiveReportService::class);
         
-        // Prepare report data with all available information
-        $reportData = [
-            'respondent_info' => [
-                'name' => $response->respondent_name,
-                'email' => $response->respondent_email,
-                'age' => $response->respondent_age
-            ],
-            'campaign_info' => [
-                'name' => $response->campaign->name,
-                'company' => $response->campaign->company->name,
-                'questionnaire_type' => $response->questionnaire->questionnaire_type?->value ?? 'REFLECTIVE_QUESTIONS'
-            ],
-            'responses' => [
-                'raw_responses' => $response->raw_responses ?? [],
-                'processed_responses' => $response->processed_responses ?? []
-            ],
-            'transcriptions' => $response->transcriptions ?? [],
-            'prosodic_analysis' => $response->prosodic_analysis ?? [],
-            'ai_analysis' => $response->ai_analysis ?? [],
-            'response_id' => $response->id,
-            'campaign_id' => $response->campaign_id
-        ];
+        // Generate the comprehensive report with AI - pass the CampaignResponse object
+        $aiGeneratedReport = $reportService->generateComprehensiveReport($response);
         
-        // Extract transcriptions from responses if not in transcriptions field
-        if (empty($reportData['transcriptions']) && $response->responses) {
-            $transcriptions = [];
-            foreach ($response->responses as $questionId => $questionResponse) {
-                if (isset($questionResponse['transcription_text'])) {
-                    $transcriptions[$questionId] = $questionResponse['transcription_text'];
-                }
-            }
-            if (!empty($transcriptions)) {
-                $reportData['transcriptions'] = $transcriptions;
-            }
-        }
-        
-        // Generate the comprehensive report with AI
-        $aiGeneratedReport = $reportService->generateComprehensiveReport($reportData);
-        
-        // Parse the AI response to extract sections
-        $parsedReport = $this->parseAIReport($aiGeneratedReport, $response);
-        
-        return $parsedReport;
+        return $aiGeneratedReport;
     }
 
     /**
