@@ -112,11 +112,24 @@
                 </h5>
             </div>
             <div class="card-body">
-                @if($response->questionnaire->questions)
-                    @php
-                        $questions = $response->questionnaire->questions;
-                        $responses = $response->processed_responses ?? $response->raw_responses ?? [];
-                    @endphp
+                @php
+                    // Obtener preguntas del cuestionario usando buildStructure()
+                    $questionnaire = $response->questionnaire;
+                    $questions = [];
+                    if ($questionnaire) {
+                        $structure = $questionnaire->buildStructure();
+                        if (isset($structure['sections'])) {
+                            foreach ($structure['sections'] as $section) {
+                                if (isset($section['questions'])) {
+                                    $questions = array_merge($questions, $section['questions']);
+                                }
+                            }
+                        }
+                    }
+                    $responses = $response->processed_responses ?? $response->raw_responses ?? [];
+                @endphp
+                
+                @if(count($questions) > 0)
                     
                     @foreach($questions as $questionId => $questionData)
                         @if(isset($responses[$questionId]))
@@ -182,9 +195,32 @@
                         @endif
                     @endforeach
                 @else
-                    <div class="alert alert-warning">
-                        No se encontraron las preguntas del cuestionario.
-                    </div>
+                    @if(count($questions) > 0)
+                        <!-- Mostrar preguntas sin respuestas cuando están pendientes -->
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>Respuesta en procesamiento.</strong> 
+                            Las respuestas de audio están siendo transcritas y analizadas.
+                        </div>
+                        
+                        @foreach($questions as $questionId => $questionData)
+                            <div class="border-bottom pb-3 mb-3">
+                                <h6 class="text-primary mb-2">
+                                    <i class="fas fa-question-circle"></i> Pregunta {{ strtoupper($questionId) }}
+                                </h6>
+                                <div class="bg-light p-3 rounded">
+                                    <em>{{ is_array($questionData) ? ($questionData['text'] ?? $questionData) : $questionData }}</em>
+                                </div>
+                                <div class="mt-2 text-muted">
+                                    <i class="fas fa-hourglass-half"></i> Esperando transcripción de audio...
+                                </div>
+                            </div>
+                        @endforeach
+                    @else
+                        <div class="alert alert-warning">
+                            No se encontraron las preguntas del cuestionario.
+                        </div>
+                    @endif
                 @endif
             </div>
         </div>
