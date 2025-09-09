@@ -529,14 +529,38 @@ Responde SOLO con el JSON, sin texto adicional.";
     {
         $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
         
+        // Si es un archivo temporal, intentar detectar el tipo real
+        if ($extension === 'tmp') {
+            // Usar finfo para detectar el MIME type real
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $detectedMime = finfo_file($finfo, $filePath);
+            finfo_close($finfo);
+            
+            Log::info('🔍 Detectando MIME type de archivo temporal', [
+                'file' => $filePath,
+                'detected_mime' => $detectedMime
+            ]);
+            
+            // Limpiar el MIME type detectado
+            if ($detectedMime && str_contains($detectedMime, 'audio/')) {
+                // Clean up MIME type - remove codec specifications
+                if (str_contains($detectedMime, ';')) {
+                    $detectedMime = explode(';', $detectedMime)[0];
+                }
+                return $detectedMime;
+            }
+            
+            // Si no se puede detectar, asumir MP4 (más común desde el frontend)
+            return 'audio/mp4';
+        }
+        
         $mimeTypes = [
             'mp3' => 'audio/mpeg',
             'mp4' => 'audio/mp4',
             'wav' => 'audio/wav',
             'webm' => 'audio/webm',
             'ogg' => 'audio/ogg',
-            'm4a' => 'audio/mp4',
-            'tmp' => 'audio/webm' // Assume WebM for temp files
+            'm4a' => 'audio/mp4'
         ];
         
         $mimeType = $mimeTypes[$extension] ?? 'audio/mpeg';
