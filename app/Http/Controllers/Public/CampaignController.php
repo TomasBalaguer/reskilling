@@ -381,14 +381,23 @@ class CampaignController extends Controller
         if ($request->hasFile('audio_files')) {
             foreach ($request->file('audio_files') as $key => $file) {
                 if ($file->isValid()) {
+                    // Get mime type and clean it (remove codec specifications)
+                    $mimeType = $file->getMimeType();
+                    // Clean up MIME type - remove codec specifications
+                    // e.g., "audio/mp4;codecs=mp4a.40.2" becomes "audio/mp4"
+                    if (str_contains($mimeType, ';')) {
+                        $mimeType = explode(';', $mimeType)[0];
+                    }
+                    
                     // Try to upload to S3, fallback to local storage
                     $extension = $file->getClientOriginalExtension();
                     // If no extension, try to guess from mime type
                     if (empty($extension)) {
-                        $mimeType = $file->getMimeType();
                         if (str_contains($mimeType, 'webm')) {
                             $extension = 'webm';
-                        } elseif (str_contains($mimeType, 'mp3')) {
+                        } elseif (str_contains($mimeType, 'mp4')) {
+                            $extension = 'mp4';
+                        } elseif (str_contains($mimeType, 'mp3') || str_contains($mimeType, 'mpeg')) {
                             $extension = 'mp3';
                         } elseif (str_contains($mimeType, 'wav')) {
                             $extension = 'wav';
@@ -411,7 +420,7 @@ class CampaignController extends Controller
                             's3_path' => $s3Path,
                             'url' => null, // Will be generated when needed
                             'size' => $file->getSize(),
-                            'mime_type' => $file->getMimeType(),
+                            'mime_type' => $mimeType, // Use cleaned mime type
                             'storage' => 's3'
                         ];
                     } catch (\Exception $e) {
@@ -425,7 +434,7 @@ class CampaignController extends Controller
                             'path' => $path,
                             'url' => Storage::url($path),
                             'size' => $file->getSize(),
-                            'mime_type' => $file->getMimeType(),
+                            'mime_type' => $mimeType, // Use cleaned mime type
                             'storage' => 'local'
                         ];
                     }

@@ -539,7 +539,15 @@ Responde SOLO con el JSON, sin texto adicional.";
             'tmp' => 'audio/webm' // Assume WebM for temp files
         ];
         
-        return $mimeTypes[$extension] ?? 'audio/mpeg';
+        $mimeType = $mimeTypes[$extension] ?? 'audio/mpeg';
+        
+        // Clean up MIME type - remove codec specifications
+        // e.g., "audio/mp4;codecs=mp4a.40.2" becomes "audio/mp4"
+        if (str_contains($mimeType, ';')) {
+            $mimeType = explode(';', $mimeType)[0];
+        }
+        
+        return $mimeType;
     }
     
     /**
