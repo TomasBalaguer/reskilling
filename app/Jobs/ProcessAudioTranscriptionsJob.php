@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\CampaignResponse;
 use App\Services\AIInterpretationService;
+use App\Jobs\GenerateAIInterpretationJob;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -41,19 +42,35 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
                 return;
             }
 
-            // Solo procesar respuestas con cuestionarios REFLECTIVE_QUESTIONS
-            $hasReflectiveQuestions = false;
-            foreach ($response->responses ?? [] as $questionnaireResponse) {
+            // Detectar si hay respuestas de audio (formato público o formato anterior)
+            $hasAudioResponses = false;
+            $isPublicFormat = false;
+            
+            foreach ($response->responses ?? [] as $key => $questionnaireResponse) {
+                // Formato anterior: tiene scoring_type = REFLECTIVE_QUESTIONS
                 if (isset($questionnaireResponse['scoring_type']) && $questionnaireResponse['scoring_type'] === 'REFLECTIVE_QUESTIONS') {
-                    $hasReflectiveQuestions = true;
+                    $hasAudioResponses = true;
+                    break;
+                }
+                
+                // Formato público: clave como "reflective_questions_q1" con type = "audio"
+                if (is_string($key) && str_contains($key, 'reflective_questions_') && 
+                    isset($questionnaireResponse['type']) && $questionnaireResponse['type'] === 'audio') {
+                    $hasAudioResponses = true;
+                    $isPublicFormat = true;
                     break;
                 }
             }
             
-            if (!$hasReflectiveQuestions) {
-                Log::info("No hay cuestionarios REFLECTIVE_QUESTIONS, saltando procesamiento");
+            if (!$hasAudioResponses) {
+                Log::info("No hay respuestas de audio para procesar, saltando procesamiento");
                 return;
             }
+            
+            Log::info("Formato detectado: " . ($isPublicFormat ? "público" : "anterior"), [
+                'response_id' => $this->responseId,
+                'has_audio_files' => !empty($response->audio_files)
+            ]);
 
             // Solo procesar si Vertex AI está habilitado
             if (!config('services.google.vertex_enabled', false)) {
@@ -74,26 +91,25 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
             
             $aiService = app(AIInterpretationService::class);
             
-            // Iterar por cada cuestionario en la respuesta
-            foreach ($campaignResponses as $questionnaireId => $questionnaireResponse) {
-                if (!isset($questionnaireResponse['scoring_type']) || $questionnaireResponse['scoring_type'] !== 'REFLECTIVE_QUESTIONS') {
-                    continue;
-                }
-                
-                if (!isset($questionnaireResponse['answers']) || !is_array($questionnaireResponse['answers'])) {
-                    continue;
-                }
-                
-                // Procesar respuestas de audio en este cuestionario
-                foreach ($questionnaireResponse['answers'] as $questionId => $answerData) {
-                    // Solo procesar si hay archivo de audio y no hay transcripción previa
-                    if (isset($answerData['audio_file']) && 
-                        !empty($answerData['audio_file']) && 
-                        empty($answerData['transcription_text'])) {
+            // Procesar respuestas según el formato detectado
+            if ($isPublicFormat) {
+                // Formato público: respuestas directas con claves como "reflective_questions_q1"
+                foreach ($campaignResponses as $responseKey => $responseData) {
+                    if (!is_string($responseKey) || !str_contains($responseKey, 'reflective_questions_') || 
+                        !isset($responseData['type']) || $responseData['type'] !== 'audio') {
+                        continue;
+                    }
+                    
+                    // Extraer el ID de pregunta (ej: "reflective_questions_q1" -> "q1")
+                    $questionId = str_replace('reflective_questions_', '', $responseKey);
+                    
+                    // Buscar archivo de audio en audio_files
+                    if (isset($response->audio_files[$responseKey])) {
+                        $audioFileInfo = $response->audio_files[$responseKey];
                         
                         try {
                             // Construir path completo al archivo
-                            $audioPath = storage_path('app/' . $answerData['audio_file']);
+                            $audioPath = storage_path('app/public/' . $audioFileInfo['path']);
                             
                             if (!file_exists($audioPath)) {
                                 Log::warning("Archivo de audio no encontrado: {$audioPath}");
@@ -103,14 +119,14 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
                             // Obtener texto de la pregunta para contexto
                             $questionText = $this->getQuestionTextForTranscription($questionId);
                             
-                            Log::info("Transcribiendo audio para pregunta {$questionId} del cuestionario {$questionnaireId}: {$audioPath}");
+                            Log::info("Transcribiendo audio para pregunta {$questionId}: {$audioPath}");
                             
                             // Analizar audio con Gemini
                             $analysis = $aiService->analyzeAudioWithGemini($audioPath, $questionText);
                             
                             // Actualizar respuesta con transcripción
                             if (isset($analysis['transcripcion']) && !empty($analysis['transcripcion'])) {
-                                $updatedResponses[$questionnaireId]['answers'][$questionId]['transcription_text'] = $analysis['transcripcion'];
+                                $updatedResponses[$responseKey]['transcription_text'] = $analysis['transcripcion'];
                                 $hasUpdates = true;
                                 
                                 Log::info("Transcripción completada para pregunta {$questionId}");
@@ -118,12 +134,67 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
                             
                             // Guardar análisis completo en un campo separado
                             if (!isset($analysis['error'])) {
-                                $updatedResponses[$questionnaireId]['answers'][$questionId]['gemini_analysis'] = $analysis;
+                                $updatedResponses[$responseKey]['gemini_analysis'] = $analysis;
                             }
                             
                         } catch (\Exception $e) {
                             Log::error("Error transcribiendo audio para pregunta {$questionId}: " . $e->getMessage());
                             // Continúa con las demás preguntas aunque una falle
+                        }
+                    }
+                }
+            } else {
+                // Formato anterior: cuestionarios con scoring_type
+                foreach ($campaignResponses as $questionnaireId => $questionnaireResponse) {
+                    if (!isset($questionnaireResponse['scoring_type']) || $questionnaireResponse['scoring_type'] !== 'REFLECTIVE_QUESTIONS') {
+                        continue;
+                    }
+                    
+                    if (!isset($questionnaireResponse['answers']) || !is_array($questionnaireResponse['answers'])) {
+                        continue;
+                    }
+                    
+                    // Procesar respuestas de audio en este cuestionario
+                    foreach ($questionnaireResponse['answers'] as $questionId => $answerData) {
+                        // Solo procesar si hay archivo de audio y no hay transcripción previa
+                        if (isset($answerData['audio_file']) && 
+                            !empty($answerData['audio_file']) && 
+                            empty($answerData['transcription_text'])) {
+                            
+                            try {
+                                // Construir path completo al archivo
+                                $audioPath = storage_path('app/' . $answerData['audio_file']);
+                                
+                                if (!file_exists($audioPath)) {
+                                    Log::warning("Archivo de audio no encontrado: {$audioPath}");
+                                    continue;
+                                }
+                                
+                                // Obtener texto de la pregunta para contexto
+                                $questionText = $this->getQuestionTextForTranscription($questionId);
+                                
+                                Log::info("Transcribiendo audio para pregunta {$questionId} del cuestionario {$questionnaireId}: {$audioPath}");
+                                
+                                // Analizar audio con Gemini
+                                $analysis = $aiService->analyzeAudioWithGemini($audioPath, $questionText);
+                                
+                                // Actualizar respuesta con transcripción
+                                if (isset($analysis['transcripcion']) && !empty($analysis['transcripcion'])) {
+                                    $updatedResponses[$questionnaireId]['answers'][$questionId]['transcription_text'] = $analysis['transcripcion'];
+                                    $hasUpdates = true;
+                                    
+                                    Log::info("Transcripción completada para pregunta {$questionId}");
+                                }
+                                
+                                // Guardar análisis completo en un campo separado
+                                if (!isset($analysis['error'])) {
+                                    $updatedResponses[$questionnaireId]['answers'][$questionId]['gemini_analysis'] = $analysis;
+                                }
+                                
+                            } catch (\Exception $e) {
+                                Log::error("Error transcribiendo audio para pregunta {$questionId}: " . $e->getMessage());
+                                // Continúa con las demás preguntas aunque una falle
+                            }
                         }
                     }
                 }
@@ -136,6 +207,12 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
             }
             
             Log::info("Procesamiento asíncrono completado para respuesta: {$this->responseId}");
+            
+            // Después de completar las transcripciones, disparar el análisis de IA
+            Log::info("Disparando trabajo de análisis de IA para respuesta: {$this->responseId}");
+            GenerateAIInterpretationJob::dispatch($this->responseId)
+                ->onQueue('ai-processing')
+                ->delay(now()->addSeconds(5)); // Pequeño delay para asegurar que las transcripciones estén guardadas
             
         } catch (\Exception $e) {
             Log::error('Error general en procesamiento asíncrono de transcripciones: ' . $e->getMessage());

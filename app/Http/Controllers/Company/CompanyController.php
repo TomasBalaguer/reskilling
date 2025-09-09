@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Services\ComprehensiveReportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class CompanyController extends Controller
 {
@@ -453,5 +454,84 @@ class CompanyController extends Controller
         
         return redirect()->back()
             ->with('success', "Campaña {$statusText} exitosamente.");
+    }
+
+    /**
+     * Mostrar formulario de edición de perfil de empresa
+     */
+    public function editProfile(Request $request)
+    {
+        $companyId = $request->get('company_id');
+        $company = Company::findOrFail($companyId);
+        
+        return view('company.profile.edit', compact('company'));
+    }
+
+    /**
+     * Actualizar perfil de empresa
+     */
+    public function updateProfile(Request $request)
+    {
+        $companyId = $request->get('company_id');
+        $company = Company::findOrFail($companyId);
+        
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'phone' => 'nullable|string|max:20',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Max 2MB
+        ]);
+
+        $updateData = [
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+        ];
+
+        // Handle logo upload
+        if ($request->hasFile('logo')) {
+            $logoFile = $request->file('logo');
+            
+            // Generate unique filename
+            $filename = 'logo_' . $company->id . '_' . time() . '.' . $logoFile->getClientOriginalExtension();
+            
+            // Store in public/company_logos directory
+            $path = $logoFile->storeAs('company_logos', $filename, 'public');
+            
+            // Remove old logo if exists
+            if ($company->logo_url && \Storage::disk('public')->exists($company->logo_url)) {
+                \Storage::disk('public')->delete($company->logo_url);
+            }
+            
+            $updateData['logo_url'] = $path;
+        }
+
+        $company->update($updateData);
+
+        return redirect()->route('company.profile.edit')
+            ->with('success', 'Perfil actualizado exitosamente.')
+            ->with('company_id', $companyId);
+    }
+
+    /**
+     * Eliminar logo de empresa
+     */
+    public function removeLogo(Request $request)
+    {
+        $companyId = $request->get('company_id');
+        $company = Company::findOrFail($companyId);
+        
+        if ($company->logo_url) {
+            // Remove file from storage
+            if (\Storage::disk('public')->exists($company->logo_url)) {
+                \Storage::disk('public')->delete($company->logo_url);
+            }
+            
+            // Update database
+            $company->update(['logo_url' => null]);
+        }
+
+        return redirect()->back()
+            ->with('success', 'Logo eliminado exitosamente.');
     }
 }

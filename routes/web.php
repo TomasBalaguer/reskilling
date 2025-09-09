@@ -75,4 +75,29 @@ Route::prefix('company')->name('company.')->middleware('company.auth')->group(fu
     Route::get('/responses/{id}', [App\Http\Controllers\Company\CompanyController::class, 'responseDetail'])->name('responses.detail');
     Route::get('/responses/{id}/report', [App\Http\Controllers\Company\CompanyController::class, 'generateResponseReport'])->name('responses.report');
     Route::post('/responses/{id}/reprocess', [App\Http\Controllers\Company\CompanyController::class, 'reprocessResponse'])->name('responses.reprocess');
+    
+    // Profile
+    Route::get('/profile', [App\Http\Controllers\Company\CompanyController::class, 'editProfile'])->name('profile.edit');
+    Route::put('/profile', [App\Http\Controllers\Company\CompanyController::class, 'updateProfile'])->name('profile.update');
+    Route::delete('/profile/logo', [App\Http\Controllers\Company\CompanyController::class, 'removeLogo'])->name('profile.remove-logo');
 });
+
+// Public routes for campaign access (no authentication required)
+Route::prefix('c')->name('public.campaign.')->group(function () {
+    Route::get('/{code}', [App\Http\Controllers\Public\CampaignController::class, 'accessCampaign'])->name('access');
+    Route::get('/{code}/info', [App\Http\Controllers\Public\CampaignController::class, 'showRespondentForm'])->name('respondent-form');
+    Route::post('/{code}/info', [App\Http\Controllers\Public\CampaignController::class, 'saveRespondentInfo'])->name('save-respondent');
+    Route::get('/{code}/q/{questionnaireId}', [App\Http\Controllers\Public\CampaignController::class, 'showQuestionnaire'])->name('questionnaire');
+    Route::post('/{code}/q/{questionnaireId}/submit', [App\Http\Controllers\Public\CampaignController::class, 'submitResponse'])->name('submit');
+    Route::get('/{code}/thank-you', [App\Http\Controllers\Public\CampaignController::class, 'thankYou'])->name('thank-you');
+});
+
+// Public routes for invitation access
+Route::prefix('i')->name('public.invitation.')->group(function () {
+    Route::get('/{token}', [App\Http\Controllers\Public\CampaignController::class, 'accessByInvitation'])->name('access');
+});
+
+// Test routes (development only)
+Route::get('/test/audio', function () {
+    return view('public.test.audio-test');
+})->name('test.audio');

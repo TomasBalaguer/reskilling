@@ -33,7 +33,7 @@ class ReflectiveQuestionsStrategy extends AbstractQuestionnaireStrategy
                     'id' => 'reflective_questions',
                     'title' => 'Preguntas Reflexivas sobre Habilidades Blandas',
                     'description' => 'Responde cada pregunta con sinceridad y reflexión. Tómate el tiempo que necesites para pensar en tus experiencias personales. Graba tu respuesta de audio para cada pregunta.',
-                    'instructions' => $this->getInstructions(),
+                    // 'instructions' => $this->getInstructions(),
                     'questions' => $this->transformQuestionsToStructure($questionnaire->questions ?? []),
                     'response_type' => 'audio_response'
                 ]

@@ -21,64 +21,64 @@
 @section('content')
     <!-- Métricas principales -->
     <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card card-metric">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card metric-card success">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="card-title text-muted">Campañas</h5>
-                            <h2 class="text-success">{{ $stats['total_campaigns'] }}</h2>
+                            <h6 class="card-subtitle mb-2" style="color: var(--medium-gray); font-weight: 500;">Campañas Activas</h6>
+                            <h2 style="color: var(--success-color); font-weight: 700; margin: 0;">{{ $stats['total_campaigns'] }}</h2>
                         </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-bullhorn fa-2x text-success"></i>
+                        <div class="text-success" style="opacity: 0.3;">
+                            <i class="fas fa-bullhorn fa-2x"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-md-3">
-            <div class="card card-metric">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card metric-card info">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="card-title text-muted">Respuestas Totales</h5>
-                            <h2 class="text-info">{{ $stats['total_responses'] }}</h2>
+                            <h6 class="card-subtitle mb-2" style="color: var(--medium-gray); font-weight: 500;">Respuestas Totales</h6>
+                            <h2 style="color: var(--info-color); font-weight: 700; margin: 0;">{{ $stats['total_responses'] }}</h2>
                         </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-clipboard-list fa-2x text-info"></i>
+                        <div class="text-info" style="opacity: 0.3;">
+                            <i class="fas fa-clipboard-list fa-2x"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-md-3">
-            <div class="card card-metric">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card metric-card warning">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="card-title text-muted">Procesadas</h5>
-                            <h2 class="text-warning">{{ $stats['completed_responses'] }}</h2>
+                            <h6 class="card-subtitle mb-2" style="color: var(--medium-gray); font-weight: 500;">Procesadas</h6>
+                            <h2 style="color: var(--warning-color); font-weight: 700; margin: 0;">{{ $stats['completed_responses'] }}</h2>
                         </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-check-circle fa-2x text-warning"></i>
+                        <div class="text-warning" style="opacity: 0.3;">
+                            <i class="fas fa-check-circle fa-2x"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-md-3">
-            <div class="card card-metric">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card metric-card danger">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="card-title text-muted">Pendientes</h5>
-                            <h2 class="text-danger">{{ $stats['pending_responses'] }}</h2>
+                            <h6 class="card-subtitle mb-2" style="color: var(--medium-gray); font-weight: 500;">Pendientes</h6>
+                            <h2 style="color: var(--danger-color); font-weight: 700; margin: 0;">{{ $stats['pending_responses'] }}</h2>
                         </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-hourglass-half fa-2x text-danger"></i>
+                        <div class="text-danger" style="opacity: 0.3;">
+                            <i class="fas fa-hourglass-half fa-2x"></i>
                         </div>
                     </div>
                 </div>
