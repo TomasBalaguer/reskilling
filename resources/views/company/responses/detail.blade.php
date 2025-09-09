@@ -152,6 +152,8 @@
                                     @php
                                         $responseText = '';
                                         $audioDuration = null;
+                                        $audioPath = null;
+                                        $audioUrl = null;
                                         
                                         // Intentar obtener transcripción del campo transcriptions
                                         if ($response->transcriptions && isset($response->transcriptions[$questionId])) {
@@ -178,11 +180,60 @@
                                         } elseif ($response->raw_responses && isset($response->raw_responses[$questionId]['audio_duration'])) {
                                             $audioDuration = $response->raw_responses[$questionId]['audio_duration'];
                                         }
+                                        
+                                        // Obtener path del archivo de audio
+                                        if ($response->audio_files && isset($response->audio_files[$questionId])) {
+                                            $audioFile = $response->audio_files[$questionId];
+                                            if (is_array($audioFile)) {
+                                                // Si tiene s3_path, generar URL temporal
+                                                if (isset($audioFile['s3_path'])) {
+                                                    try {
+                                                        $audioUrl = \Storage::disk('s3')->temporaryUrl(
+                                                            $audioFile['s3_path'],
+                                                            now()->addMinutes(30)
+                                                        );
+                                                    } catch (\Exception $e) {
+                                                        // Si falla S3, intentar con path local
+                                                        if (isset($audioFile['path'])) {
+                                                            $audioUrl = \Storage::url($audioFile['path']);
+                                                        }
+                                                    }
+                                                } elseif (isset($audioFile['path'])) {
+                                                    // Si tiene path local
+                                                    $audioUrl = \Storage::url($audioFile['path']);
+                                                } elseif (isset($audioFile['url'])) {
+                                                    // Si ya tiene URL directa
+                                                    $audioUrl = $audioFile['url'];
+                                                }
+                                            }
+                                        }
                                     @endphp
                                     
                                     <div class="alert alert-success" role="alert">
                                         <strong>{{ $response->respondent_name }}:</strong> "{{ $responseText }}"
                                     </div>
+                                    
+                                    <!-- Reproductor/Descarga de audio si está disponible -->
+                                    @if($audioUrl)
+                                        <div class="mt-3 mb-3">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <!-- Reproductor de audio HTML5 -->
+                                                <audio controls class="w-100" style="max-width: 400px;">
+                                                    <source src="{{ $audioUrl }}" type="audio/mpeg">
+                                                    <source src="{{ $audioUrl }}" type="audio/webm">
+                                                    <source src="{{ $audioUrl }}" type="audio/mp4">
+                                                    Tu navegador no soporta el elemento de audio.
+                                                </audio>
+                                                
+                                                <!-- Botón de descarga -->
+                                                <a href="{{ $audioUrl }}" 
+                                                   download="audio_{{ $response->id }}_{{ $questionId }}.mp3" 
+                                                   class="btn btn-sm btn-outline-primary ms-2">
+                                                    <i class="fas fa-download"></i> Descargar
+                                                </a>
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
                                 
                                 <!-- Duración de audio si está disponible -->
@@ -316,6 +367,17 @@
 }
 .card.border-secondary {
     border: 1px solid #dee2e6 !important;
+}
+/* Estilos para el reproductor de audio */
+audio {
+    height: 40px;
+    border-radius: 5px;
+}
+audio::-webkit-media-controls-panel {
+    background-color: #f8f9fa;
+}
+.gap-3 {
+    gap: 1rem !important;
 }
 </style>
 @endsection
