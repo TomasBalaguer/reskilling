@@ -46,7 +46,43 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
             $hasAudioResponses = false;
             $isPublicFormat = false;
             
-            foreach ($response->responses ?? [] as $key => $questionnaireResponse) {
+            // Validar y obtener respuestas
+            $responses = $response->responses;
+            
+            // Log inicial para debug
+            Log::info("🔍 INSPECCIONANDO DATOS DE RESPUESTA", [
+                'response_id' => $this->responseId,
+                'responses_type' => gettype($responses),
+                'responses_is_string' => is_string($responses),
+                'responses_is_array' => is_array($responses),
+                'responses_preview' => is_string($responses) ? substr($responses, 0, 200) : 'not_string'
+            ]);
+            
+            // Si responses es string, intentar decodificar JSON
+            if (is_string($responses)) {
+                $decoded = json_decode($responses, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $responses = $decoded;
+                    Log::info("✅ JSON decodificado exitosamente");
+                } else {
+                    Log::error("❌ Error decodificando JSON de responses", [
+                        'json_error' => json_last_error_msg(),
+                        'raw_responses' => $responses
+                    ]);
+                    return;
+                }
+            }
+            
+            // Verificar que responses sea array después de procesamiento
+            if (!is_array($responses)) {
+                Log::error("❌ responses no es array después de procesamiento", [
+                    'type' => gettype($responses),
+                    'value' => $responses
+                ]);
+                return;
+            }
+            
+            foreach ($responses as $key => $questionnaireResponse) {
                 // Formato anterior: tiene scoring_type = REFLECTIVE_QUESTIONS
                 if (isset($questionnaireResponse['scoring_type']) && $questionnaireResponse['scoring_type'] === 'REFLECTIVE_QUESTIONS') {
                     $hasAudioResponses = true;
@@ -78,14 +114,8 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
                 return;
             }
 
-            $campaignResponses = $response->responses;
-            
-            // Verificar que responses no sea null
-            if (!$campaignResponses || !is_array($campaignResponses)) {
-                Log::warning("Responses es null o no es array para respuesta {$this->responseId}");
-                return;
-            }
-
+            // Usar las respuestas ya validadas y procesadas
+            $campaignResponses = $responses;
             $updatedResponses = $campaignResponses;
             $hasUpdates = false;
             
