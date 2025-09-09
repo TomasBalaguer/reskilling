@@ -13,7 +13,25 @@ class FileStorageService
      */
     public function uploadAudio(UploadedFile $file, string $folder = 'responses'): string
     {
-        $filename = Str::uuid() . '_' . time() . '.' . $file->getClientOriginalExtension();
+        $extension = $file->getClientOriginalExtension();
+        
+        // If no extension, try to guess from mime type
+        if (empty($extension)) {
+            $mimeType = $file->getMimeType();
+            if (str_contains($mimeType, 'webm')) {
+                $extension = 'webm';
+            } elseif (str_contains($mimeType, 'mp3')) {
+                $extension = 'mp3';
+            } elseif (str_contains($mimeType, 'wav')) {
+                $extension = 'wav';
+            } elseif (str_contains($mimeType, 'ogg')) {
+                $extension = 'ogg';
+            } else {
+                $extension = 'webm'; // default for web recordings
+            }
+        }
+        
+        $filename = Str::uuid() . '_' . time() . '.' . $extension;
         $path = $folder . '/' . $filename;
         
         Storage::disk('audio-storage')->put($path, file_get_contents($file));

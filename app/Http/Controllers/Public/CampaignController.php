@@ -372,7 +372,23 @@ class CampaignController extends Controller
                         $s3Paths[$key] = $s3Path;
                         
                         // Keep local info for compatibility
-                        $filename = 'audio_' . Str::random(10) . '_' . time() . '.' . $file->getClientOriginalExtension();
+                        $extension = $file->getClientOriginalExtension();
+                        // If no extension, try to guess from mime type
+                        if (empty($extension)) {
+                            $mimeType = $file->getMimeType();
+                            if (str_contains($mimeType, 'webm')) {
+                                $extension = 'webm';
+                            } elseif (str_contains($mimeType, 'mp3')) {
+                                $extension = 'mp3';
+                            } elseif (str_contains($mimeType, 'wav')) {
+                                $extension = 'wav';
+                            } elseif (str_contains($mimeType, 'ogg')) {
+                                $extension = 'ogg';
+                            } else {
+                                $extension = 'webm'; // default
+                            }
+                        }
+                        $filename = 'audio_' . Str::random(10) . '_' . time() . '.' . $extension;
                         
                         $audioFiles[$key] = [
                             'filename' => $filename,
@@ -386,7 +402,23 @@ class CampaignController extends Controller
                     } catch (\Exception $e) {
                         \Log::error('Error uploading audio to S3: ' . $e->getMessage());
                         // Fallback to local storage
-                        $filename = 'audio_' . Str::random(10) . '_' . time() . '.' . $file->getClientOriginalExtension();
+                        $extension = $file->getClientOriginalExtension();
+                        // If no extension, try to guess from mime type
+                        if (empty($extension)) {
+                            $mimeType = $file->getMimeType();
+                            if (str_contains($mimeType, 'webm')) {
+                                $extension = 'webm';
+                            } elseif (str_contains($mimeType, 'mp3')) {
+                                $extension = 'mp3';
+                            } elseif (str_contains($mimeType, 'wav')) {
+                                $extension = 'wav';
+                            } elseif (str_contains($mimeType, 'ogg')) {
+                                $extension = 'ogg';
+                            } else {
+                                $extension = 'webm'; // default
+                            }
+                        }
+                        $filename = 'audio_' . Str::random(10) . '_' . time() . '.' . $extension;
                         $path = $file->storeAs('campaign_responses/audio', $filename, 'public');
                         
                         $audioFiles[$key] = [
