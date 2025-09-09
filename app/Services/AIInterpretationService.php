@@ -172,30 +172,68 @@ class AIInterpretationService
      */
     public function analyzeAudioWithGemini(string $audioFilePath, string $questionText = ''): array
     {
+        Log::info('🎙️ INICIANDO ANÁLISIS DE AUDIO', [
+            'audio_file_path' => $audioFilePath,
+            'question_text_length' => strlen($questionText),
+            'gemini_model' => $this->model,
+            'timestamp' => now()->toISOString()
+        ]);
+        
         try {
             // Verificar que el archivo existe
             if (!Storage::exists($audioFilePath) && !file_exists($audioFilePath)) {
+                Log::error('❌ ARCHIVO DE AUDIO NO ENCONTRADO', [
+                    'path_checked' => $audioFilePath,
+                    'storage_exists' => Storage::exists($audioFilePath),
+                    'file_exists' => file_exists($audioFilePath)
+                ]);
                 throw new \Exception("Archivo de audio no encontrado: {$audioFilePath}");
             }
 
             // Si es un path relativo al storage, obtener el path completo
             if (Storage::exists($audioFilePath)) {
                 $fullPath = Storage::path($audioFilePath);
+                Log::info('📁 Usando archivo desde Storage', ['full_path' => $fullPath]);
             } else {
                 $fullPath = $audioFilePath;
+                Log::info('📁 Usando archivo directo', ['full_path' => $fullPath]);
             }
 
+            // Verificar tamaño del archivo
+            $fileSize = filesize($fullPath);
+            Log::info('📊 INFORMACIÓN DEL ARCHIVO', [
+                'file_size_bytes' => $fileSize,
+                'file_size_mb' => round($fileSize / 1024 / 1024, 2),
+                'file_extension' => pathinfo($fullPath, PATHINFO_EXTENSION)
+            ]);
+
             // Leer y codificar el archivo de audio
+            Log::info('🔄 Codificando archivo a base64...');
             $audioData = base64_encode(file_get_contents($fullPath));
+            $encodedSize = strlen($audioData);
+            Log::info('✅ Archivo codificado', [
+                'base64_size_bytes' => $encodedSize,
+                'base64_size_mb' => round($encodedSize / 1024 / 1024, 2)
+            ]);
             
             // Detectar mime type basado en la extensión
             $mimeType = $this->getAudioMimeType($fullPath);
+            Log::info('🎵 Tipo MIME detectado', ['mime_type' => $mimeType]);
             
             // Construir prompt específico para análisis de audio
             $analysisPrompt = $this->buildAudioAnalysisPrompt($questionText);
+            Log::info('📝 Prompt construido', [
+                'prompt_length' => strlen($analysisPrompt),
+                'includes_question' => !empty($questionText)
+            ]);
             
             // URL de la API REST de Gemini
             $url = "https://generativelanguage.googleapis.com/v1/models/{$this->model}:generateContent";
+            Log::info('🌐 Preparando llamada a Gemini API', [
+                'url' => $url,
+                'model' => $this->model,
+                'api_key_configured' => !empty($this->apiKey)
+            ]);
             
             // Preparar datos para envío multimodal
             $data = [
@@ -223,37 +261,107 @@ class AIInterpretationService
                 ]
             ];
             
+            Log::info('📤 ENVIANDO SOLICITUD A GEMINI API...', [
+                'payload_structure' => [
+                    'contents_count' => count($data['contents']),
+                    'parts_count' => count($data['contents'][0]['parts']),
+                    'generation_config' => $data['generationConfig']
+                ]
+            ]);
+            
             // Realizar solicitud con timeout extendido para audio
+            $startTime = microtime(true);
             $response = Http::timeout(60)
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post($url . "?key=" . $this->apiKey, $data);
+            $endTime = microtime(true);
+            
+            $responseTime = round($endTime - $startTime, 2);
+            
+            Log::info('📥 RESPUESTA RECIBIDA DE GEMINI', [
+                'response_time_seconds' => $responseTime,
+                'status_code' => $response->status(),
+                'successful' => $response->successful(),
+                'response_size' => strlen($response->body())
+            ]);
             
             if ($response->successful()) {
-                $rawResponse = $response->json()['candidates'][0]['content']['parts'][0]['text'];
+                $responseBody = $response->json();
+                Log::info('✅ RESPUESTA EXITOSA DE GEMINI', [
+                    'has_candidates' => isset($responseBody['candidates']),
+                    'candidates_count' => isset($responseBody['candidates']) ? count($responseBody['candidates']) : 0
+                ]);
+                
+                $rawResponse = $responseBody['candidates'][0]['content']['parts'][0]['text'];
+                Log::info('📄 CONTENIDO DE LA RESPUESTA', [
+                    'raw_response_length' => strlen($rawResponse),
+                    'raw_response_preview' => substr($rawResponse, 0, 200) . '...'
+                ]);
                 
                 // Intentar decodificar JSON
                 $analysisResult = json_decode($rawResponse, true);
                 
                 if (json_last_error() !== JSON_ERROR_NONE) {
-                    Log::warning('Respuesta de Gemini no es JSON válido, intentando limpiar: ' . $rawResponse);
+                    Log::warning('⚠️ RESPUESTA NO ES JSON VÁLIDO', [
+                        'json_error' => json_last_error_msg(),
+                        'raw_response' => $rawResponse
+                    ]);
                     // Intentar limpiar la respuesta y extraer JSON
                     $analysisResult = $this->extractJsonFromResponse($rawResponse);
+                    
+                    if ($analysisResult) {
+                        Log::info('✅ JSON EXTRAÍDO EXITOSAMENTE DESPUÉS DE LIMPIEZA');
+                    }
                 }
                 
                 if (!$analysisResult) {
+                    Log::error('❌ NO SE PUDO OBTENER ANÁLISIS VÁLIDO', [
+                        'raw_response' => $rawResponse
+                    ]);
                     throw new \Exception('No se pudo obtener análisis válido del audio');
                 }
                 
-                Log::info('Análisis de audio completado exitosamente para: ' . basename($fullPath));
+                // Log del contenido del análisis
+                Log::info('🎯 ANÁLISIS COMPLETADO', [
+                    'transcripcion_length' => isset($analysisResult['transcripcion']) ? strlen($analysisResult['transcripcion']) : 0,
+                    'has_analisis_emocional' => isset($analysisResult['analisis_emocional']),
+                    'has_metricas_prosodicas' => isset($analysisResult['metricas_prosodicas']),
+                    'analysis_keys' => array_keys($analysisResult)
+                ]);
+                
+                if (isset($analysisResult['metricas_prosodicas'])) {
+                    Log::info('🎭 MÉTRICAS PROSÓDICAS OBTENIDAS', $analysisResult['metricas_prosodicas']);
+                }
+                
+                if (isset($analysisResult['analisis_emocional'])) {
+                    Log::info('😊 ANÁLISIS EMOCIONAL OBTENIDO', $analysisResult['analisis_emocional']);
+                }
+                
+                Log::info('🎉 ANÁLISIS DE AUDIO COMPLETADO EXITOSAMENTE', [
+                    'file' => basename($fullPath),
+                    'total_time_seconds' => $responseTime
+                ]);
+                
                 return $analysisResult;
                 
             } else {
-                Log::error('Error en respuesta de API Gemini para audio: ' . $response->body());
-                throw new \Exception('Error en análisis de audio: ' . $response->status());
+                $errorBody = $response->body();
+                Log::error('❌ ERROR EN RESPUESTA DE GEMINI API', [
+                    'status_code' => $response->status(),
+                    'error_body' => $errorBody,
+                    'headers' => $response->headers()
+                ]);
+                throw new \Exception('Error en análisis de audio: ' . $response->status() . ' - ' . $errorBody);
             }
             
         } catch (\Exception $e) {
-            Log::error('Error al analizar audio con Gemini: ' . $e->getMessage());
+            Log::error('💥 ERROR CRÍTICO EN ANÁLISIS DE AUDIO', [
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'audio_file' => $audioFilePath,
+                'trace' => $e->getTraceAsString()
+            ]);
             
             // Retornar estructura básica en caso de error
             return [

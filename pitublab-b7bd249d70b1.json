@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "pitublab",
+  "private_key_id": "b7bd249d70b13fed6af9c1fd0f6c25674c433365",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCe2DfbVd07NT/L\nFWKyxVn0ka5gs7I0xoNX64QXzpCP2S0j6wSVw9nX61u2Uv6AgwVu6zXRHqd0ic9D\ntvAz9HiRYEMYYgoQTDUfdFkWnI1KdtyaVgg54dFLNILMNljDoKJ2TaT8obiNFLjz\n37ClUidWGQRe+HoUMYilG8k5qSdIhuxiGFHKaTQS3a6zCIpKvtJmKgw/C2MVXVDa\ntJiOIlKdukEN+q7H61HnCJ+fta0ZgdTd3tQtuu/CGWHee3JfhbyfJIoDbcPl67au\nw93BMK5EyBGVcCsPAeeFctXHq/EtOnASJra5F10Beo60yn5Cx0BR4VhWzTPCh3qN\nZEphncE9AgMBAAECggEAIz40aHMM3pfiM1AnoaQFYSzYfIaqLaj019M+r9yKOQxV\nxmAc2JDHeu9yngmcg41ubW1894y+WS5BYRQMB+8AODscL+MCuhp6d+Pj508tTx3/\ntLONaDBI9E9ujNorCB6SJT71cgL8tDqqjZtuMUQAy8rJrDujtGrIF2AKncNA3seM\n8Pkyifk+9dJaI2095Au9MQekKMSlUdgkMtrtEMKfufVZ/IX1Sh1zoudJqIAjQ5/L\n0eQATQVLIyEVwhT3Un0P1KKH07cmQh8pG8UuIUOXUcTBy/O7rJSp+qlR/ulRnB1B\n08wK6Zo6GWfKFoRN7hC6V5B0CVa1yCEKEzLwtwLMAQKBgQDeFHbBZgl7Nus3+uXs\n9I90soTLNKfN8ReylFaRVlZA0/JtljX/mEINjaePs6P1cmPkqZ3HHx5I3k18B9nP\nGqxzSbrLPZUHh9hp/2BpA+iEzSM2/CC0WWoee8SLYxwrTdOtaqF2VgipLPiNRTyE\nDmhLz5t0j3lgO+SvTBUKrSm8AQKBgQC3GzFYWaNi6C+29AFnmDjBJa0YFSCjyQ/a\np1ZXHj04tWMs3guPMOFrmoRkLqzWJUl+6r/Dvf+JMd1xoQtlmNR5d/L28+LMRPra\nuYP3eLDLqYvDv1VyikJkaUChea2ypf74r2/ClBh7t+sLsup3JUsTVNB2YEgIYYxb\nN5LG6b/1PQKBgDGqv/h22o389VQ6v6tj8qV1u2864oCTd+pPdKDifz3WaPSLUJ5O\nLg+b66qe0X92StL8ADZlRj+jwA6KLvM7ku/hwG3t4uOhRQxHugcigaEZw9NrReEv\n0iTpJ0bJLqacrEevflbZ3OwBC8GEh4k9M6Qo1SqXX9ze6EEwMdCGc7wBAoGBAKY/\nY0MTR9wycbgLvQbA167ONWWrMRJkKCffTO4WP4GwdtYy2I3u1IxtI40OL9DS0/MO\n0oO3iz6WbrePf5iD9U5AEPIVJzNN4fEbBO14wBR54LMekkdHrtYaFhtGLeYI/wHt\nz2v8KGqT5y2dCXKaApsPo6IG8v/hCZ18TKCbdLUFAoGBAMFE3wU25QIROe1edmlW\nas7YADmC1Q7+cKQNbGxTBjX9QBNcMWhWpX1T+ivwPHf191Bf2bnciswUfogkX3Fl\nJlpxaCft9ZF76Vckhwm8sx2XJaWSxQ58S1+FCiP+5EmW/zmEx/Q01QPJgBHF40Su\n9q1aA1zcj3JVZXZHtoqoE3MU\n-----END PRIVATE KEY-----\n",
+  "client_email": "vertex-ai-service-account@pitublab.iam.gserviceaccount.com",
+  "client_id": "104402211603242097890",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/vertex-ai-service-account%40pitublab.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

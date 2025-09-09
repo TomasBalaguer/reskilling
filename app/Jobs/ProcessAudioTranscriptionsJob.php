@@ -108,37 +108,145 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
                         $audioFileInfo = $response->audio_files[$responseKey];
                         
                         try {
-                            // Construir path completo al archivo
-                            $audioPath = storage_path('app/public/' . $audioFileInfo['path']);
+                            // Verificar si tenemos audio local o S3
+                            $audioPath = null;
+                            $isS3Audio = false;
                             
-                            if (!file_exists($audioPath)) {
-                                Log::warning("Archivo de audio no encontrado: {$audioPath}");
+                            Log::info("🔍 ANALIZANDO UBICACIÓN DEL AUDIO", [
+                                'question_id' => $questionId,
+                                'audio_file_info' => $audioFileInfo
+                            ]);
+                            
+                            if (isset($audioFileInfo['path']) && !empty($audioFileInfo['path'])) {
+                                // Audio local
+                                $audioPath = storage_path('app/public/' . $audioFileInfo['path']);
+                                Log::info("📁 AUDIO LOCAL DETECTADO", [
+                                    'question_id' => $questionId,
+                                    'path' => $audioPath,
+                                    'exists' => file_exists($audioPath)
+                                ]);
+                            } elseif (isset($audioFileInfo['s3_path']) && isset($response->audio_s3_paths[$responseKey])) {
+                                // Audio en S3 - descargar temporalmente
+                                $s3Path = $response->audio_s3_paths[$responseKey];
+                                $fileStorageService = app(\App\Services\FileStorageService::class);
+                                $isS3Audio = true;
+                                
+                                Log::info("☁️ AUDIO EN S3 DETECTADO", [
+                                    'question_id' => $questionId,
+                                    's3_path' => $s3Path,
+                                    'downloading' => true
+                                ]);
+                                
+                                try {
+                                    $audioPath = $fileStorageService->downloadAudioForProcessing($s3Path);
+                                    Log::info("✅ Audio descargado desde S3", [
+                                        'question_id' => $questionId,
+                                        'temp_path' => $audioPath,
+                                        'file_size' => filesize($audioPath)
+                                    ]);
+                                } catch (\Exception $s3Error) {
+                                    Log::error("❌ ERROR DESCARGANDO DESDE S3", [
+                                        'question_id' => $questionId,
+                                        'error' => $s3Error->getMessage(),
+                                        's3_path' => $s3Path
+                                    ]);
+                                    continue;
+                                }
+                            }
+                            
+                            if (!$audioPath || !file_exists($audioPath)) {
+                                Log::warning("❌ ARCHIVO DE AUDIO NO ENCONTRADO", [
+                                    'question_id' => $questionId,
+                                    'path' => $audioPath,
+                                    'audio_file_info' => $audioFileInfo,
+                                    'is_s3' => $isS3Audio
+                                ]);
                                 continue;
                             }
                             
                             // Obtener texto de la pregunta para contexto
                             $questionText = $this->getQuestionTextForTranscription($questionId);
                             
-                            Log::info("Transcribiendo audio para pregunta {$questionId}: {$audioPath}");
+                            Log::info("🚀 INICIANDO ANÁLISIS CON GEMINI", [
+                                'response_id' => $this->responseId,
+                                'question_id' => $questionId,
+                                'question_text' => $questionText,
+                                'audio_path' => $audioPath,
+                                'file_size' => filesize($audioPath),
+                                'is_s3_audio' => $isS3Audio
+                            ]);
                             
                             // Analizar audio con Gemini
                             $analysis = $aiService->analyzeAudioWithGemini($audioPath, $questionText);
+                            
+                            Log::info("📊 RESULTADO DEL ANÁLISIS GEMINI", [
+                                'response_id' => $this->responseId,
+                                'question_id' => $questionId,
+                                'has_transcripcion' => isset($analysis['transcripcion']),
+                                'transcripcion_length' => isset($analysis['transcripcion']) ? strlen($analysis['transcripcion']) : 0,
+                                'has_error' => isset($analysis['error']),
+                                'analysis_keys' => array_keys($analysis),
+                                'has_prosodic' => isset($analysis['metricas_prosodicas']),
+                                'has_emotional' => isset($analysis['analisis_emocional'])
+                            ]);
                             
                             // Actualizar respuesta con transcripción
                             if (isset($analysis['transcripcion']) && !empty($analysis['transcripcion'])) {
                                 $updatedResponses[$responseKey]['transcription_text'] = $analysis['transcripcion'];
                                 $hasUpdates = true;
                                 
-                                Log::info("Transcripción completada para pregunta {$questionId}");
+                                Log::info("✅ TRANSCRIPCIÓN GUARDADA", [
+                                    'response_id' => $this->responseId,
+                                    'question_id' => $questionId,
+                                    'transcription_preview' => substr($analysis['transcripcion'], 0, 100) . '...'
+                                ]);
                             }
                             
                             // Guardar análisis completo en un campo separado
                             if (!isset($analysis['error'])) {
                                 $updatedResponses[$responseKey]['gemini_analysis'] = $analysis;
+                                Log::info("💾 ANÁLISIS COMPLETO GUARDADO", [
+                                    'response_id' => $this->responseId,
+                                    'question_id' => $questionId,
+                                    'has_prosodic_metrics' => isset($analysis['metricas_prosodicas']),
+                                    'has_emotional_analysis' => isset($analysis['analisis_emocional'])
+                                ]);
+                                
+                                // Log específico de métricas prosódicas
+                                if (isset($analysis['metricas_prosodicas'])) {
+                                    Log::info("🎭 MÉTRICAS PROSÓDICAS", [
+                                        'response_id' => $this->responseId,
+                                        'question_id' => $questionId,
+                                        'prosodic_data' => $analysis['metricas_prosodicas']
+                                    ]);
+                                }
+                            } else {
+                                Log::error("❌ ANÁLISIS CON ERROR", [
+                                    'response_id' => $this->responseId,
+                                    'question_id' => $questionId,
+                                    'error' => $analysis['error']
+                                ]);
+                            }
+                            
+                            // Limpiar archivo temporal si es de S3
+                            if ($isS3Audio && file_exists($audioPath)) {
+                                unlink($audioPath);
+                                Log::info("🗑️ Archivo temporal S3 eliminado", [
+                                    'question_id' => $questionId,
+                                    'path' => $audioPath
+                                ]);
                             }
                             
                         } catch (\Exception $e) {
-                            Log::error("Error transcribiendo audio para pregunta {$questionId}: " . $e->getMessage());
+                            Log::error("💥 ERROR CRÍTICO PROCESANDO AUDIO", [
+                                'response_id' => $this->responseId,
+                                'question_id' => $questionId,
+                                'error_message' => $e->getMessage(),
+                                'error_file' => $e->getFile(),
+                                'error_line' => $e->getLine(),
+                                'audio_file_info' => $audioFileInfo,
+                                'trace' => $e->getTraceAsString()
+                            ]);
                             // Continúa con las demás preguntas aunque una falle
                         }
                     }
