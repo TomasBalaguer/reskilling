@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Services\FileStorageService;
 
 class Company extends Model
 {
@@ -13,6 +14,7 @@ class Company extends Model
         'name',
         'subdomain',
         'logo_url',
+        'logo_s3_path',
         'email',
         'phone',
         'max_campaigns',
@@ -54,5 +56,16 @@ class Company extends Model
     public function getActiveCampaignsAttribute()
     {
         return $this->campaigns()->where('status', 'active')->count();
+    }
+
+    // Logo URL accessor
+    public function getLogoUrlAttribute()
+    {
+        if ($this->logo_s3_path) {
+            $fileStorage = new FileStorageService();
+            return $fileStorage->getImageUrl($this->logo_s3_path);
+        }
+        
+        return $this->attributes['logo_url'] ?? null;
     }
 }

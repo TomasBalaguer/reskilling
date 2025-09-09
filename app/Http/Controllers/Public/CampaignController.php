@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Services\FileStorageService;
 
 class CampaignController extends Controller
 {
@@ -279,6 +280,9 @@ class CampaignController extends Controller
         }
 
         try {
+            // Manejar archivos de audio
+            $audioData = $this->handleAudioFiles($request);
+            
             // Crear la respuesta
             $response = CampaignResponse::create([
                 'campaign_id' => $campaign->id,
@@ -287,7 +291,8 @@ class CampaignController extends Controller
                 'respondent_name' => $respondentInfo['name'],
                 'respondent_email' => $respondentInfo['email'],
                 'responses' => $request->input('responses', []),
-                'audio_files' => $this->handleAudioFiles($request),
+                'audio_files' => $audioData['audio_files'],
+                'audio_s3_paths' => $audioData['s3_paths'],
                 'duration_minutes' => $request->input('duration_minutes', 0),
                 'processing_status' => 'pending',
                 'started_at' => $sessionData['started_at'] ?? now(),
@@ -355,25 +360,49 @@ class CampaignController extends Controller
     private function handleAudioFiles(Request $request)
     {
         $audioFiles = [];
+        $s3Paths = [];
+        $fileStorageService = new FileStorageService();
 
         if ($request->hasFile('audio_files')) {
             foreach ($request->file('audio_files') as $key => $file) {
                 if ($file->isValid()) {
-                    $filename = 'audio_' . Str::random(10) . '_' . time() . '.' . $file->getClientOriginalExtension();
-                    $path = $file->storeAs('campaign_responses/audio', $filename, 'public');
-                    
-                    $audioFiles[$key] = [
-                        'filename' => $filename,
-                        'path' => $path,
-                        'url' => Storage::url($path),
-                        'size' => $file->getSize(),
-                        'mime_type' => $file->getMimeType()
-                    ];
+                    // Upload to S3
+                    try {
+                        $s3Path = $fileStorageService->uploadAudio($file, 'responses');
+                        $s3Paths[$key] = $s3Path;
+                        
+                        // Keep local info for compatibility
+                        $filename = 'audio_' . Str::random(10) . '_' . time() . '.' . $file->getClientOriginalExtension();
+                        
+                        $audioFiles[$key] = [
+                            'filename' => $filename,
+                            'path' => null, // No local path
+                            's3_path' => $s3Path,
+                            'url' => null, // Will be generated when needed
+                            'size' => $file->getSize(),
+                            'mime_type' => $file->getMimeType(),
+                            'storage' => 's3'
+                        ];
+                    } catch (\Exception $e) {
+                        \Log::error('Error uploading audio to S3: ' . $e->getMessage());
+                        // Fallback to local storage
+                        $filename = 'audio_' . Str::random(10) . '_' . time() . '.' . $file->getClientOriginalExtension();
+                        $path = $file->storeAs('campaign_responses/audio', $filename, 'public');
+                        
+                        $audioFiles[$key] = [
+                            'filename' => $filename,
+                            'path' => $path,
+                            'url' => Storage::url($path),
+                            'size' => $file->getSize(),
+                            'mime_type' => $file->getMimeType(),
+                            'storage' => 'local'
+                        ];
+                    }
                 }
             }
         }
 
-        return $audioFiles;
+        return ['audio_files' => $audioFiles, 's3_paths' => $s3Paths];
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Services\FileStorageService;
 
 class CampaignResponse extends Model
 {
@@ -40,6 +41,8 @@ class CampaignResponse extends Model
         'access_type',
         'access_token',
         'audio_files',
+        'audio_s3_paths',
+        's3_files',
         'duration_minutes',
         'started_at',
         'completed_at',
@@ -60,6 +63,8 @@ class CampaignResponse extends Model
         'analysis_summary' => 'array',
         'comprehensive_report' => 'array',
         'audio_files' => 'array',
+        'audio_s3_paths' => 'array',
+        's3_files' => 'array',
         'questionnaire_scores' => 'array',
         'age' => 'integer',
         'respondent_age' => 'integer',
@@ -212,5 +217,58 @@ class CampaignResponse extends Model
                 $response->started_at = now();
             }
         });
+    }
+
+    // Audio URLs accessor
+    public function getAudioUrlsAttribute()
+    {
+        $urls = [];
+        $fileStorage = new FileStorageService();
+
+        // Prefer S3 paths if available
+        if ($this->audio_s3_paths) {
+            foreach ($this->audio_s3_paths as $key => $s3Path) {
+                $urls[$key] = $fileStorage->getAudioUrl($s3Path);
+            }
+            return $urls;
+        }
+
+        // Fallback to local paths
+        if ($this->audio_files) {
+            foreach ($this->audio_files as $key => $audioFile) {
+                if (isset($audioFile['storage']) && $audioFile['storage'] === 's3' && isset($audioFile['s3_path'])) {
+                    $urls[$key] = $fileStorage->getAudioUrl($audioFile['s3_path']);
+                } else {
+                    $urls[$key] = $audioFile['url'] ?? null;
+                }
+            }
+        }
+
+        return $urls;
+    }
+
+    // Get audio file for processing
+    public function downloadAudioForProcessing($key)
+    {
+        $fileStorage = new FileStorageService();
+
+        // Check S3 paths first
+        if ($this->audio_s3_paths && isset($this->audio_s3_paths[$key])) {
+            return $fileStorage->downloadAudioForProcessing($this->audio_s3_paths[$key]);
+        }
+
+        // Check if audio_files has S3 info
+        if ($this->audio_files && isset($this->audio_files[$key])) {
+            $audioFile = $this->audio_files[$key];
+            if (isset($audioFile['s3_path'])) {
+                return $fileStorage->downloadAudioForProcessing($audioFile['s3_path']);
+            }
+            // Fallback to local path
+            if (isset($audioFile['path'])) {
+                return storage_path('app/public/' . $audioFile['path']);
+            }
+        }
+
+        return null;
     }
 }
