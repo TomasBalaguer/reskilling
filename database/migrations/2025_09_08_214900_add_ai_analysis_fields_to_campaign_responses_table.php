@@ -13,6 +13,15 @@ return new class extends Migration
     {
         Schema::table('campaign_responses', function (Blueprint $table) {
             // Add AI analysis related fields
+            if (!Schema::hasColumn('campaign_responses', 'ai_analysis')) {
+                $table->json('ai_analysis')->nullable()->after('responses');
+            }
+            if (!Schema::hasColumn('campaign_responses', 'transcriptions')) {
+                $table->json('transcriptions')->nullable()->after('ai_analysis');
+            }
+            if (!Schema::hasColumn('campaign_responses', 'prosodic_analysis')) {
+                $table->json('prosodic_analysis')->nullable()->after('transcriptions');
+            }
             if (!Schema::hasColumn('campaign_responses', 'ai_analysis_status')) {
                 $table->enum('ai_analysis_status', ['pending', 'processing', 'completed', 'failed'])->nullable()->after('processing_error');
             }
@@ -38,6 +47,9 @@ return new class extends Migration
     {
         Schema::table('campaign_responses', function (Blueprint $table) {
             $table->dropColumn([
+                'ai_analysis',
+                'transcriptions',
+                'prosodic_analysis',
                 'ai_analysis_status',
                 'ai_analysis_completed_at', 
                 'ai_analysis_failed_at',
