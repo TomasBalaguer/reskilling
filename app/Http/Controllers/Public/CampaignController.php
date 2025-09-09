@@ -287,7 +287,7 @@ class CampaignController extends Controller
             $response = CampaignResponse::create([
                 'campaign_id' => $campaign->id,
                 'questionnaire_id' => $questionnaire->id,
-                'session_id' => $request->session()->getId(),
+                'session_id' => $this->generateUniqueSessionId($request),
                 'respondent_name' => $respondentInfo['name'],
                 'respondent_email' => $respondentInfo['email'],
                 'responses' => $request->input('responses', []),
@@ -475,5 +475,21 @@ class CampaignController extends Controller
             'completed_count' => count($completedQuestionnaires),
             'pending_count' => count($pendingQuestionnaires)
         ];
+    }
+
+    /**
+     * Generate a unique session ID that fits in database column
+     */
+    private function generateUniqueSessionId(Request $request): string
+    {
+        $originalSessionId = $request->session()->getId();
+        
+        // If original session ID is short enough, use it
+        if (strlen($originalSessionId) <= 40) {
+            return $originalSessionId;
+        }
+        
+        // Generate a shorter unique ID based on original session + timestamp
+        return substr(md5($originalSessionId . time()), 0, 40);
     }
 }
