@@ -24,10 +24,12 @@ class ProcessAIAnalysisResults implements ShouldQueue
     public function handle(AIAnalysisCompleted $event): void
     {
         try {
-            Log::info('Processing AI analysis results', [
+            Log::info('📊 STEP 5: Processing AI analysis results', [
+                'step' => 5,
                 'response_id' => $event->response->id,
                 'successful' => $event->isSuccessful(),
-                'summary' => $event->getAnalysisSummary()
+                'summary' => $event->getAnalysisSummary(),
+                'listener' => 'ProcessAIAnalysisResults'
             ]);
 
             if ($event->isSuccessful()) {
@@ -85,7 +87,13 @@ class ProcessAIAnalysisResults implements ShouldQueue
             ->onQueue('scoring')
             ->delay(now()->addMinutes(2));
 
-        Log::info('Final scoring job dispatched', ['response_id' => $event->response->id]);
+        Log::info('🎯 STEP 5.1: Final scoring job dispatched', [
+            'step' => '5.1',
+            'response_id' => $event->response->id,
+            'next_job' => 'GenerateQuestionnaireScoresJob',
+            'queue' => 'scoring',
+            'delay_minutes' => 2
+        ]);
 
         // If the response is ready for comprehensive reporting, generate it
         if ($event->isReadyForReport()) {

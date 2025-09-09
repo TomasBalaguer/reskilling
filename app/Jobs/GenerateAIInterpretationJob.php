@@ -48,10 +48,12 @@ class GenerateAIInterpretationJob implements ShouldQueue
                 throw new \Exception("Questionnaire not found for response {$this->responseId}");
             }
 
-            Log::info('Generating AI interpretation', [
+            Log::info('🤖 STEP 4: Generating AI interpretation', [
+                'step' => 4,
                 'response_id' => $response->id,
                 'questionnaire_type' => $questionnaire->questionnaire_type?->value,
-                'has_transcriptions' => !empty($response->transcriptions)
+                'has_transcriptions' => !empty($response->transcriptions),
+                'job' => 'GenerateAIInterpretationJob'
             ]);
 
             // Update processing status
@@ -88,11 +90,13 @@ class GenerateAIInterpretationJob implements ShouldQueue
             // Enhance results with processing metadata
             $analysisResults = $this->enhanceResultsWithMetadata($analysisResults, $processingTime, $response);
 
-            Log::info('AI interpretation completed', [
+            Log::info('✅ STEP 4.1: AI interpretation completed, dispatching analysis event', [
+                'step' => '4.1',
                 'response_id' => $response->id,
                 'processing_time' => $processingTime,
                 'interpretations_count' => count($analysisResults['interpretations'] ?? []),
-                'confidence_score' => $analysisResults['overall_confidence'] ?? 0
+                'confidence_score' => $analysisResults['overall_confidence'] ?? 0,
+                'next_event' => 'AIAnalysisCompleted'
             ]);
 
             // Fire AI analysis completed event

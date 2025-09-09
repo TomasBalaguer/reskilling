@@ -47,10 +47,12 @@ class GenerateQuestionnaireScoresJob implements ShouldQueue
                 throw new \Exception("Questionnaire not found for response {$this->responseId}");
             }
 
-            Log::info('Generating questionnaire scores', [
+            Log::info('🏁 STEP 6: Generating final questionnaire scores', [
+                'step' => 6,
                 'response_id' => $response->id,
                 'questionnaire_type' => $questionnaire->questionnaire_type?->value,
-                'has_ai_analysis' => !empty($response->ai_analysis)
+                'has_ai_analysis' => !empty($response->ai_analysis),
+                'job' => 'GenerateQuestionnaireScoresJob'
             ]);
 
             // Update processing status
@@ -84,11 +86,14 @@ class GenerateQuestionnaireScoresJob implements ShouldQueue
                 'total_processing_time' => $this->calculateTotalProcessingTime($response)
             ]);
 
-            Log::info('Questionnaire scores generated successfully', [
+            Log::info('🎉 STEP 6.1: PROCESSING COMPLETED - Response fully processed!', [
+                'step' => '6.1',
                 'response_id' => $response->id,
                 'scoring_type' => $enhancedScores['scoring_type'] ?? 'unknown',
                 'processing_time' => $processingTime,
-                'total_score' => $enhancedScores['total_score'] ?? 'N/A'
+                'total_score' => $enhancedScores['total_score'] ?? 'N/A',
+                'final_status' => 'completed',
+                'total_processing_time' => $this->calculateTotalProcessingTime($response)
             ]);
 
             // Trigger any post-scoring workflows

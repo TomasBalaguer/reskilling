@@ -30,7 +30,8 @@ class ProcessQuestionnaireResponse implements ShouldQueue
     public function handle(QuestionnaireResponseSubmitted $event): void
     {
         try {
-            Log::info('Processing questionnaire response', [
+            Log::info('📋 STEP 2: Processing questionnaire response', [
+                'step' => 2,
                 'response_id' => $event->response->id,
                 'campaign_id' => $event->response->campaign_id,
                 'questionnaire_type' => $event->response->questionnaire?->questionnaire_type?->value,
@@ -73,7 +74,12 @@ class ProcessQuestionnaireResponse implements ShouldQueue
             ->onQueue('audio-processing')
             ->delay(now()->addSeconds(5)); // Small delay to ensure response is fully saved
 
-        Log::info('Audio transcription job dispatched', ['response_id' => $event->response->id]);
+        Log::info('🎙️ STEP 2.1: Audio transcription job dispatched', [
+            'step' => '2.1',
+            'response_id' => $event->response->id,
+            'queue' => 'audio-processing',
+            'delay_seconds' => 5
+        ]);
     }
 
     /**

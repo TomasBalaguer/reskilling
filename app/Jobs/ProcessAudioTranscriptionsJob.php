@@ -33,7 +33,11 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
     public function handle(): void
     {
         try {
-            Log::info("Iniciando procesamiento asíncrono de transcripciones para respuesta: {$this->responseId}");
+            Log::info("🎧 STEP 3: Starting audio transcription processing", [
+                'step' => 3,
+                'response_id' => $this->responseId,
+                'job' => 'ProcessAudioTranscriptionsJob'
+            ]);
             
             $response = CampaignResponse::find($this->responseId);
             
@@ -347,7 +351,14 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
             Log::info("Procesamiento asíncrono completado para respuesta: {$this->responseId}");
             
             // Después de completar las transcripciones, disparar el análisis de IA
-            Log::info("Disparando trabajo de análisis de IA para respuesta: {$this->responseId}");
+            Log::info("🧠 STEP 3.1: Dispatching AI interpretation job", [
+                'step' => '3.1',
+                'response_id' => $this->responseId,
+                'next_job' => 'GenerateAIInterpretationJob',
+                'queue' => 'ai-processing',
+                'delay_seconds' => 5
+            ]);
+            
             GenerateAIInterpretationJob::dispatch($this->responseId)
                 ->onQueue('ai-processing')
                 ->delay(now()->addSeconds(5)); // Pequeño delay para asegurar que las transcripciones estén guardadas

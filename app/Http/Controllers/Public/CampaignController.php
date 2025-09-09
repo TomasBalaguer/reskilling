@@ -10,6 +10,7 @@ use App\Events\QuestionnaireResponseSubmitted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Services\FileStorageService;
 
@@ -306,8 +307,22 @@ class CampaignController extends Controller
             // Actualizar contador de respuestas de campaña
             $campaign->incrementResponseCount();
 
-            // Disparar evento para procesamiento en cola
-            QuestionnaireResponseSubmitted::dispatch($response);
+            // Determinar si requiere procesamiento de IA (tiene archivos de audio)
+            $requiresAI = !empty($audioData['audio_files']) && is_array($audioData['audio_files']) && count($audioData['audio_files']) > 0;
+            
+            Log::info('🚀 STEP 1: Response submitted - dispatching processing event', [
+                'step' => 1,
+                'response_id' => $response->id,
+                'campaign_id' => $campaign->id,
+                'questionnaire_id' => $questionnaire->id,
+                'has_audio_files' => $requiresAI,
+                'audio_files_count' => $requiresAI ? count($audioData['audio_files']) : 0,
+                'requires_ai_processing' => $requiresAI,
+                'respondent_name' => $response->respondent_name
+            ]);
+            
+            // Disparar evento para procesamiento en cola con flag de IA correcto
+            QuestionnaireResponseSubmitted::dispatch($response, [], $requiresAI);
 
             // Marcar cuestionario como completado en la sesión
             $sessionData['completed_questionnaires'][] = $questionnaireId;
