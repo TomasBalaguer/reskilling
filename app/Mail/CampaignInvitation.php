@@ -27,7 +27,7 @@ class CampaignInvitation extends Mailable implements ShouldQueue
      */
     public function __construct(Campaign $campaign, CampaignInvitationModel $invitation)
     {
-        $this->campaign = $campaign;
+        $this->campaign = $campaign->load('company');
         $this->invitation = $invitation;
         $this->invitationUrl = config('app.frontend_url') . '/i/' . $invitation->token;
     }
@@ -38,7 +38,7 @@ class CampaignInvitation extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Invitación a participar: ' . $this->campaign->name,
+            subject: 'Diagnóstico de Habilidades Blandas - ' . $this->campaign->company->name,
         );
     }
 

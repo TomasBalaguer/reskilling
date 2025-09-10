@@ -3,138 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invitación a Participar</title>
+    <title>Diagnóstico de Habilidades Blandas</title>
     <style>
         body {
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
-            background-color: #f4f4f4;
+            color: #2c3e50;
+            background-color: #f5f5f5;
         }
         .container {
             max-width: 600px;
-            margin: 0 auto;
+            margin: 20px auto;
             background-color: #ffffff;
-            padding: 0;
-            border-radius: 10px;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         }
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 40px 30px;
+            background-color: #ffffff;
+            padding: 40px 40px 20px 40px;
             text-align: center;
-            color: white;
-        }
-        .logo-section {
-            margin-bottom: 30px;
-            text-align: center;
+            border-bottom: 1px solid #e9ecef;
         }
         .company-logo {
-            max-width: 120px;
-            max-height: 60px;
-            margin-bottom: 20px;
-            border-radius: 8px;
+            max-width: 180px;
+            max-height: 80px;
+            margin-bottom: 30px;
         }
-        .powered-by {
-            font-size: 12px;
-            color: rgba(255,255,255,0.8);
-            margin-top: 15px;
-        }
-        .neurografy-logo {
-            max-width: 80px;
-            max-height: 30px;
-            vertical-align: middle;
-            margin-left: 5px;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: bold;
+        .main-title {
+            font-size: 32px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 0 0 30px 0;
+            letter-spacing: -0.5px;
         }
         .content {
-            padding: 40px 30px;
+            padding: 40px;
+            background-color: #ffffff;
         }
-        .campaign-info {
-            background-color: #f8f9fa;
-            padding: 25px;
-            border-radius: 8px;
-            margin: 25px 0;
-            border-left: 4px solid #667eea;
+        .greeting {
+            font-size: 18px;
+            color: #2c3e50;
+            margin-bottom: 25px;
         }
-        .campaign-name {
-            font-size: 20px;
-            font-weight: bold;
+        .intro-text {
+            font-size: 15px;
+            color: #5a6c7d;
+            line-height: 1.7;
+            margin-bottom: 20px;
+        }
+        .company-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .highlight-text {
+            font-size: 15px;
+            color: #5a6c7d;
+            line-height: 1.7;
+            margin: 20px 0;
+        }
+        .tech-mention {
+            font-size: 15px;
+            color: #5a6c7d;
+            margin: 20px 0;
+        }
+        .tech-name {
+            font-weight: 600;
             color: #667eea;
-            margin-bottom: 10px;
         }
-        .campaign-description {
-            color: #666;
-            font-size: 14px;
+        .time-info {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .cta-container {
+            text-align: center;
+            margin: 35px 0;
         }
         .cta-button {
             display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #11B981 100%);
             color: white;
-            padding: 15px 30px;
+            padding: 16px 40px;
             text-decoration: none;
-            border-radius: 25px;
-            font-weight: bold;
+            border-radius: 30px;
+            font-weight: 600;
             font-size: 16px;
-            margin: 25px 0;
-            transition: transform 0.2s;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
         }
         .cta-button:hover {
             transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
         }
-        .questionnaires-list {
+        .deadline-text {
+            font-size: 14px;
+            color: #7a8a9a;
+            margin: 25px 0;
+            padding: 15px;
             background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
+            border-radius: 6px;
+            text-align: center;
         }
-        .questionnaire-item {
-            margin: 10px 0;
-            padding: 10px 0;
-            border-bottom: 1px solid #e9ecef;
+        .deadline-date {
+            font-weight: 600;
+            color: #2c3e50;
         }
-        .questionnaire-item:last-child {
-            border-bottom: none;
+        .signature {
+            margin-top: 35px;
+            padding-top: 25px;
+            border-top: 1px solid #e9ecef;
         }
-        .questionnaire-name {
-            font-weight: bold;
-            color: #333;
+        .signature-text {
+            font-size: 14px;
+            color: #5a6c7d;
+            margin-bottom: 5px;
         }
-        .questionnaire-type {
-            font-size: 12px;
-            background-color: #667eea;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 12px;
-            display: inline-block;
-            margin-top: 5px;
+        .signature-company {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
         }
         .footer {
-            background-color: #2c3e50;
-            color: #ecf0f1;
+            background-color: #f8f9fa;
+            padding: 30px 40px;
             text-align: center;
-            padding: 30px;
-            font-size: 14px;
+            border-top: 1px solid #e9ecef;
         }
-        .footer a {
-            color: #3498db;
-            text-decoration: none;
+        .footer-logo {
+            max-width: 120px;
+            margin-bottom: 10px;
+            opacity: 0.8;
         }
-        .important-note {
-            background-color: #fff3cd;
-            border: 1px solid #ffeaa7;
-            color: #856404;
+        .footer-text {
+            font-size: 11px;
+            color: #95a5b5;
+            margin-top: 10px;
+        }
+        .alternative-link {
+            font-size: 13px;
+            color: #7a8a9a;
+            margin-top: 20px;
             padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            font-size: 14px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            word-break: break-all;
+        }
+        .alternative-link a {
+            color: #667eea;
+            text-decoration: none;
         }
         @media (max-width: 600px) {
             .container {
@@ -142,92 +161,92 @@
                 border-radius: 0;
             }
             .header, .content, .footer {
-                padding: 20px;
+                padding: 30px 20px;
+            }
+            .main-title {
+                font-size: 26px;
+            }
+            .cta-button {
+                padding: 14px 30px;
+                font-size: 15px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Header with logos -->
+        <!-- Header con logo de la empresa -->
         <div class="header">
-            <div class="logo-section">
-                @if($campaign->company->logo_url)
-                    <img src="{{ config('app.url') . Storage::url($campaign->company->logo_url) }}" 
-                         alt="{{ $campaign->company->name }}" 
-                         class="company-logo">
-                @endif
-                
-                <div class="powered-by">
-                    Powered by 
-                    <img src="{{ config('app.url') }}/images/neurografy-logo-white.png" 
-                         alt="Neurografy" 
-                         class="neurografy-logo">
-                </div>
-            </div>
-            
-            <h1>¡Estás Invitado!</h1>
-            <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">
-                {{ $campaign->company->name }} te invita a participar en una evaluación importante
-            </p>
-        </div>
-
-        <!-- Content -->
-        <div class="content">
-            <p>Hola{{ $invitation->name ? ' ' . $invitation->name : '' }},</p>
-            
-            <p>Has sido invitado/a a participar en la siguiente campaña de evaluación:</p>
-
-            <div class="campaign-info">
-                <div class="campaign-name">{{ $campaign->name }}</div>
-                @if($campaign->description)
-                    <div class="campaign-description">{{ $campaign->description }}</div>
-                @endif
-            </div>
-
-            @if($campaign->questionnaires->count() > 0)
-                <h3>Cuestionarios a completar:</h3>
-                <div class="questionnaires-list">
-                    @foreach($campaign->questionnaires as $questionnaire)
-                        <div class="questionnaire-item">
-                            <div class="questionnaire-name">{{ $questionnaire->name }}</div>
-                            @if($questionnaire->description)
-                                <div style="font-size: 14px; color: #666; margin: 5px 0;">
-                                    {{ $questionnaire->description }}
-                                </div>
-                            @endif
-                            <span class="questionnaire-type">
-                                {{ $questionnaire->getQuestionnaireType()->getDisplayName() }}
-                            </span>
-                        </div>
-                    @endforeach
+            @if($campaign->company->logo_url)
+                <img src="{{ config('app.url') . Storage::url($campaign->company->logo_url) }}" 
+                     alt="{{ $campaign->company->name }}" 
+                     class="company-logo">
+            @else
+                <div style="font-size: 24px; font-weight: 600; color: #2c3e50; margin-bottom: 30px;">
+                    {{ $campaign->company->name }}
                 </div>
             @endif
+            
+            <h1 class="main-title">Potencia tu futuro profesional</h1>
+        </div>
 
-            <div class="important-note">
-                <strong>Importante:</strong> Esta invitación es personal e intransferible. 
-                La campaña estará disponible desde el {{ $campaign->active_from->format('d/m/Y H:i') }} 
-                hasta el {{ $campaign->active_until->format('d/m/Y H:i') }}.
+        <!-- Contenido principal -->
+        <div class="content">
+            <div class="greeting">
+                Hola, {{ $invitation->name ?: 'Participante' }}
             </div>
+            
+            <p class="intro-text">
+                En <span class="company-name">{{ $campaign->company->name }}</span>, estamos comprometidos con tu 
+                desarrollo integral. Por eso, te invitamos a realizar un diagnóstico de 
+                habilidades blandas, una herramienta clave para que identifiques tus 
+                fortalezas y áreas de oportunidad de cara al mercado laboral.
+            </p>
 
-            <div style="text-align: center; margin: 30px 0;">
+            <p class="highlight-text">
+                Conocer y potenciar competencias como la comunicación, el trabajo en 
+                equipo y la resolución de problemas es fundamental para tu éxito 
+                profesional.
+            </p>
+
+            <p class="tech-mention">
+                Este test, potenciado por la tecnología de <span class="tech-name">Re-skilling.ai</span>, te tomará 
+                aproximadamente <span class="time-info">15 minutos</span>. Los resultados te ofrecerán una guía 
+                valiosa para tu crecimiento.
+            </p>
+
+            <div class="cta-container">
                 <a href="{{ $invitationUrl }}" class="cta-button">
-                    Comenzar Evaluación
+                    Realizar mi Test Ahora
                 </a>
             </div>
 
-            <p style="font-size: 14px; color: #666;">
+            @if($campaign->active_until)
+            <div class="deadline-text">
+                Te recomendamos completarlo antes del <span class="deadline-date">{{ $campaign->active_until->format('d/m/Y H:i') }}</span> para 
+                aprovechar al máximo esta oportunidad.
+            </div>
+            @endif
+
+            <div class="alternative-link">
                 Si el botón no funciona, puedes copiar y pegar este enlace en tu navegador:<br>
-                <a href="{{ $invitationUrl }}" style="color: #667eea; word-break: break-all;">{{ $invitationUrl }}</a>
-            </p>
+                <a href="{{ $invitationUrl }}">{{ $invitationUrl }}</a>
+            </div>
+
+            <div class="signature">
+                <div class="signature-text">Atentamente,</div>
+                <div class="signature-company">{{ $campaign->company->name }}</div>
+            </div>
         </div>
 
-        <!-- Footer -->
+        <!-- Footer con logo de Re-Skilling -->
         <div class="footer">
-            <p>Este email fue enviado por {{ $campaign->company->name }}</p>
-            <p style="font-size: 12px; opacity: 0.8;">
-                Sistema de evaluación powered by <a href="https://neurografy.com">Neurografy</a>
-            </p>
+            <img src="{{ config('app.url') }}/images/reskiling-logo.png" 
+                 alt="Re-Skilling.ai" 
+                 class="footer-logo">
+            <div class="footer-text">
+                Powered by Re-Skilling.ai - Sistema de Análisis de Competencias
+            </div>
         </div>
     </div>
 </body>

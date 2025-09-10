@@ -1,4 +1,4 @@
-# 🏗️ Documentación Técnica Completa - Sistema de Cuestionarios B2B
+# 🏗️ Documentación Técnica Completa - Sistema Re-Skilling.ai
 
 ## 📋 Índice
 1. [Arquitectura General](#arquitectura-general)
@@ -12,10 +12,22 @@
 9. [Endpoints API](#endpoints-api)
 10. [Base de Datos](#base-de-datos)
 11. [Configuración](#configuración)
+12. [Sistema de Autenticación](#sistema-de-autenticación)
+13. [Vistas y Frontend](#vistas-y-frontend)
+14. [Sistema de Reportes](#sistema-de-reportes)
 
 ---
 
 ## 🏛️ Arquitectura General
+
+### Stack Tecnológico
+- **Backend**: Laravel 11.x
+- **Frontend**: Blade + Alpine.js + Bootstrap 5
+- **Base de Datos**: MySQL 8.0
+- **Colas**: Database Driver (migrable a Redis)
+- **Storage**: S3 AWS para archivos de audio
+- **IA**: Google Gemini API para análisis y transcripciones
+- **PDF**: Dompdf para generación de reportes
 
 ### Patrón Strategy
 - **QuestionnaireStrategyInterface**: Contrato base
@@ -25,8 +37,15 @@
 
 ### Flujo de Procesamiento
 ```
-Respuesta → Evento → Listener → Jobs → Análisis → Reporte
+Audio Upload → S3 Storage → Transcripción (Gemini) → 
+Análisis Prosódico → Interpretación IA → 
+Reporte Comprehensivo → PDF Generation
 ```
+
+### Arquitectura Multi-tenant
+- **Admin**: Super administrador del sistema
+- **Company**: Administradores de empresa
+- **Respondent**: Usuarios finales que responden cuestionarios
 
 ---
 
@@ -116,11 +135,130 @@ Respuesta → Evento → Listener → Jobs → Análisis → Reporte
 - campaignResponse(): HasOne
 ```
 
+### **CompanyUser**
+**Ubicación:** `app/Models/CompanyUser.php`
+```php
+// Campos principales
+- id, company_id, name, email, password
+- role (admin/user), is_active
+- last_login_at, created_at, updated_at
+
+// Relaciones
+- company(): BelongsTo
+
+// Métodos
+- Autenticación personalizada para empresas
+```
+
+### **CampaignEmailLog**
+**Ubicación:** `app/Models/CampaignEmailLog.php`
+```php
+// Campos principales
+- id, campaign_id, invitation_id
+- email, subject, status
+- sent_at, opened_at, clicked_at
+- error_message, metadata (JSON)
+
+// Relaciones
+- campaign(): BelongsTo
+- invitation(): BelongsTo
+```
+
+### **QuestionnairePrompt**
+**Ubicación:** `app/Models/QuestionnairePrompt.php`
+```php
+// Campos principales
+- id, questionnaire_id, prompt_type
+- prompt_text, metadata (JSON)
+- is_active, order
+
+// Relaciones
+- questionnaire(): BelongsTo
+```
+
 ---
 
 ## 🎮 Controladores
 
-### **CampaignController**
+### **AdminController**
+**Ubicación:** `app/Http/Controllers/Admin/AdminController.php`
+
+#### Métodos principales:
+```php
+// Dashboard y estadísticas
+dashboard(): View // Vista principal con métricas
+
+// Gestión de empresas
+companies(): View // Listado de empresas
+companyDetail($companyId): View
+createCompany(): View
+storeCompany(Request): RedirectResponse
+editCompany($companyId): View
+updateCompany(Request, $companyId): RedirectResponse
+deleteCompany($companyId): RedirectResponse
+toggleCompanyStatus($companyId): RedirectResponse
+
+// Gestión de campañas
+campaigns(): View // Todas las campañas del sistema
+campaignDetail($campaignId): View
+createCampaign(Request): View
+storeCampaign(Request): RedirectResponse
+editCampaign($campaignId): View
+updateCampaign(Request, $campaignId): RedirectResponse
+toggleCampaignStatus(Request, $campaignId): RedirectResponse
+
+// Gestión de respuestas
+responses(): View // Todas las respuestas
+responseDetail($responseId): View
+generateResponseReport($responseId): PDF
+reprocessResponse($responseId): RedirectResponse
+deleteResponse($responseId): RedirectResponse
+
+// Utilidades
+exportCampaignData($campaignId): CSV
+createCompanyUser(Request, $companyId): RedirectResponse
+resetCompanyUserPassword(Request, $companyId, $userId): RedirectResponse
+```
+
+### **CompanyController**
+**Ubicación:** `app/Http/Controllers/Company/CompanyController.php`
+
+#### Métodos principales:
+```php
+// Dashboard empresa
+dashboard(Request): View // Dashboard específico de empresa
+
+// Gestión de campañas propias
+campaigns(Request): View
+campaignDetail(Request, $campaignId): View
+createCampaign(Request): View
+storeCampaign(Request): RedirectResponse
+editCampaign(Request, $campaignId): View
+updateCampaign(Request, $campaignId): RedirectResponse
+toggleCampaignStatus(Request, $campaignId): RedirectResponse
+toggleCampaignPublicAccess(Request, $campaignId): RedirectResponse
+
+// Gestión de respuestas
+responses(Request): View
+responseDetail(Request, $responseId): View
+generateResponseReport(Request, $responseId): PDF
+reprocessResponse(Request, $responseId): RedirectResponse
+
+// Gestión de invitaciones
+resendInvitations(Request, $campaignId): RedirectResponse
+addSingleInvitation(Request, $campaignId): RedirectResponse
+addCSVInvitations(Request, $campaignId): RedirectResponse
+
+// Perfil de empresa
+editProfile(Request): View
+updateProfile(Request): RedirectResponse
+removeLogo(Request): RedirectResponse
+
+// Email logs
+campaignEmailLogs(Request, $campaignId): View
+```
+
+### **CampaignController (API)**
 **Ubicación:** `app/Http/Controllers/API/CampaignController.php`
 
 #### Endpoints:
@@ -133,6 +271,39 @@ verifyCode(Request $request, string $code): JsonResponse
 
 // Acceso por invitación
 getByInvitation(string $token): QuestionnaireAssignmentResource
+```
+
+### **CampaignResponseController (API)**
+**Ubicación:** `app/Http/Controllers/API/CampaignResponseController.php`
+
+#### Endpoints:
+```php
+// Crear respuesta
+store(Request): JsonResponse
+
+// Subir archivos de audio
+uploadAudio(Request, $responseId): JsonResponse
+
+// Obtener estado de procesamiento
+getStatus($responseId): JsonResponse
+```
+
+### **Auth Controllers**
+**Ubicación:** `app/Http/Controllers/Auth/`
+
+#### AdminAuthController:
+```php
+showLoginForm(): View
+login(Request): RedirectResponse
+logout(): RedirectResponse
+```
+
+#### CompanyAuthController:
+```php
+showLoginForm(): View
+login(Request): RedirectResponse
+logout(): RedirectResponse
+dashboard(): RedirectResponse // Redirige según empresa
 ```
 
 ---
@@ -154,6 +325,52 @@ generateTextAnalysis(CampaignResponse, Questionnaire, array): array
 analyzeAudioWithGemini(string $audioPath, string $questionText): array
 ```
 
+### **ComprehensiveReportService**
+**Ubicación:** `app/Services/ComprehensiveReportService.php`
+
+#### Métodos principales:
+```php
+// Generar reporte completo con las 15 competencias
+generateComprehensiveReport(CampaignResponse): array
+
+// Estructurar reporte con formato JSON
+structureFinalReport(string $aiReport, CampaignResponse): array
+
+// Incluye análisis de:
+- 15 competencias soft skills con puntuaciones 1-10
+- Puntos fuertes y áreas de desarrollo
+- Plan de desarrollo personalizado
+- Proyecto integrador recomendado
+- Análisis prosódico integrado
+```
+
+### **EmailLoggerService**
+**Ubicación:** `app/Services/EmailLoggerService.php`
+
+#### Métodos principales:
+```php
+// Logging de emails
+logEmailQueued(Campaign, CampaignInvitation): CampaignEmailLog
+logEmailSent(CampaignEmailLog): void
+logEmailFailed(CampaignEmailLog, string, Exception): void
+
+// Estadísticas
+getCampaignEmailStats(Campaign): array
+getRecentFailures(Campaign, int): Collection
+```
+
+### **FileStorageService**
+**Ubicación:** `app/Services/FileStorageService.php`
+
+#### Métodos principales:
+```php
+// Gestión de archivos S3
+storeAudioFile(UploadedFile, string): array
+getFileUrl(string): string
+deleteFile(string): bool
+getSignedUrl(string, int): string
+```
+
 ### **QuestionnaireProcessorFactory**
 **Ubicación:** `app/Services/QuestionnaireProcessing/QuestionnaireProcessorFactory.php`
 
@@ -163,6 +380,18 @@ Maneja la creación de processors para diferentes tipos de cuestionarios.
 
 ## 🔄 Jobs y Colas
 
+### **ProcessQuestionnaireAudioJob**
+**Ubicación:** `app/Jobs/ProcessQuestionnaireAudioJob.php`
+```php
+// Constructor
+__construct(int $responseId)
+
+// Cola: 'audio-processing'
+// Procesa archivos de audio usando Gemini API
+// Genera transcripciones y análisis prosódico
+// Incluye análisis de emociones y métricas de voz
+```
+
 ### **ProcessAudioTranscriptionsJob**
 **Ubicación:** `app/Jobs/ProcessAudioTranscriptionsJob.php`
 ```php
@@ -170,7 +399,8 @@ Maneja la creación de processors para diferentes tipos de cuestionarios.
 __construct(int $responseId)
 
 // Cola: 'audio-processing'
-// Procesa archivos de audio y genera transcripciones
+// Versión alternativa para procesamiento de audio
+// Maneja múltiples archivos de audio por respuesta
 ```
 
 ### **ProcessTextAnalysisJob**
@@ -181,6 +411,7 @@ __construct(int $responseId)
 
 // Cola: 'ai-processing'
 // Analiza respuestas de texto con IA
+// Para cuestionarios sin audio
 ```
 
 ### **GenerateAIInterpretationJob**
@@ -191,6 +422,8 @@ __construct(int $responseId)
 
 // Cola: 'ai-processing'  
 // Genera interpretaciones de IA basadas en transcripciones
+// Análisis de 7 habilidades blandas principales
+// Integra análisis prosódico con contenido
 ```
 
 ### **GenerateQuestionnaireScoresJob**
@@ -201,6 +434,7 @@ __construct(int $responseId)
 
 // Cola: 'scoring'
 // Calcula puntuaciones finales usando strategies
+// Genera métricas por competencia
 ```
 
 ### **GenerateComprehensiveReportJob**
@@ -209,8 +443,11 @@ __construct(int $responseId)
 // Constructor
 __construct(int $responseId)
 
-// Cola: 'reporting'
-// Genera reportes integrales finales
+// Cola: 'reports' 
+// Genera reportes integrales con 15 competencias
+// Incluye puntuaciones estructuradas (1-10)
+// Genera plan de desarrollo personalizado
+// Se ejecuta después de completar análisis IA
 ```
 
 ---
@@ -532,4 +769,209 @@ pending → processing → transcribing → transcribed
 
 ---
 
-Este documento cubre toda la arquitectura técnica actual. Para actualizaciones, modificar este archivo cuando se implementen nuevas funcionalidades.
+## 🔐 Sistema de Autenticación
+
+### **Multi-tenant Authentication**
+```php
+// Tres niveles de acceso:
+1. Admin (Super Admin)
+   - Ruta: /admin/login
+   - Guard: 'admin'
+   - Modelo: User
+   - Acceso total al sistema
+
+2. Company (Admin Empresa)
+   - Ruta: /company/login  
+   - Guard: 'company'
+   - Modelo: CompanyUser
+   - Acceso limitado a su empresa
+
+3. Respondent (Usuario Final)
+   - Sin autenticación requerida
+   - Acceso por código de campaña o invitación
+```
+
+### **Middleware**
+```php
+// app/Http/Middleware/
+- AdminAuthenticate: Protege rutas admin
+- CompanyAuthenticate: Protege rutas empresa
+- EnsureCompanyAccess: Valida acceso a recursos de empresa
+```
+
+---
+
+## 🎨 Vistas y Frontend
+
+### **Estructura de Vistas**
+```
+resources/views/
+├── admin/           # Vistas del administrador
+│   ├── dashboard.blade.php
+│   ├── companies/   # Gestión de empresas
+│   ├── campaigns/   # Gestión de campañas
+│   ├── responses/   # Gestión de respuestas
+│   └── reports/     # Reportes PDF
+├── company/         # Vistas de empresa
+│   ├── dashboard.blade.php
+│   ├── campaigns/   
+│   ├── responses/
+│   └── profile/
+├── auth/            # Vistas de autenticación
+│   ├── admin-login.blade.php
+│   └── company-login.blade.php
+├── partials/        # Componentes reutilizables
+│   └── response-detail.blade.php
+├── reports/         # Plantillas PDF
+│   └── professional-pdf.blade.php
+└── layouts/         # Layouts principales
+    ├── admin.blade.php
+    └── company.blade.php
+```
+
+### **Assets y Estilos**
+```css
+// Bootstrap 5 personalizado
+// Gradientes: #667eea → #764ba2
+// Colores principales:
+- Primary: #667eea
+- Success: #10b981
+- Warning: #f59e0b
+- Danger: #ef4444
+```
+
+---
+
+## 📊 Sistema de Reportes
+
+### **Tipos de Reportes**
+
+#### **1. Reporte de Análisis IA**
+```json
+{
+  "habilidades_blandas": {
+    "comunicacion": { "puntuacion": 8.5, "analisis": "..." },
+    "trabajo_en_equipo": { "puntuacion": 7.2, "analisis": "..." },
+    "liderazgo": { "puntuacion": 6.8, "analisis": "..." },
+    // ... 7 habilidades totales
+  },
+  "analisis_prosodico": {
+    "tono_emocional": "positivo",
+    "nivel_confianza": 85,
+    "ritmo_habla": "moderado"
+  }
+}
+```
+
+#### **2. Reporte Comprehensivo (15 Competencias)**
+```json
+{
+  "competencias": {
+    "perseverancia": { "puntuacion": 8, "nivel": "Excelente" },
+    "resiliencia": { "puntuacion": 7, "nivel": "Bueno" },
+    "pensamiento_critico": { "puntuacion": 9, "nivel": "Excelente" },
+    // ... 15 competencias totales
+  },
+  "puntuacion_promedio": 7.5,
+  "puntos_fuertes": [...],
+  "areas_desarrollo": [...],
+  "plan_desarrollo": [...],
+  "proyecto_recomendado": {...}
+}
+```
+
+#### **3. PDF Profesional**
+- **Página 1**: Dashboard ejecutivo con score general
+- **Página 2**: Análisis detallado 15 competencias
+- **Página 3**: Fortalezas y áreas de mejora
+- **Página 4**: Plan de desarrollo personalizado
+
+### **Generación de PDFs**
+```php
+// Usando Dompdf
+use Barryvdh\DomPDF\Facade\Pdf;
+
+$pdf = Pdf::loadView('reports.professional-pdf', compact('response'));
+return $pdf->download('reporte.pdf');
+```
+
+---
+
+## 🚀 Deployment y Configuración
+
+### **Requisitos del Sistema**
+- PHP 8.2+
+- MySQL 8.0+
+- Composer 2.x
+- Node.js 18+
+- AWS S3 (para audio)
+
+### **Variables de Entorno Críticas**
+```env
+# Google AI
+GOOGLE_AI_API_KEY=
+GOOGLE_AI_MODEL=gemini-1.5-flash
+
+# AWS S3
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_DEFAULT_REGION=
+AWS_BUCKET=
+
+# Colas
+QUEUE_CONNECTION=database
+
+# App
+APP_ENV=production
+APP_DEBUG=false
+```
+
+### **Comandos de Deployment**
+```bash
+# Instalación inicial
+composer install --no-dev
+npm install && npm run build
+php artisan migrate
+php artisan storage:link
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# Workers de colas (supervisor)
+php artisan queue:work --queue=audio-processing,ai-processing,reports,scoring,default
+```
+
+### **Cron Jobs**
+```cron
+# Limpiar respuestas antiguas
+0 2 * * * php artisan responses:cleanup --days=90
+
+# Procesar colas fallidas
+*/5 * * * * php artisan queue:retry all
+```
+
+---
+
+## 📈 Métricas y Monitoreo
+
+### **KPIs del Sistema**
+- Tiempo promedio de procesamiento de audio: ~45s
+- Tiempo de generación de reporte IA: ~30s
+- Tasa de éxito de transcripciones: >95%
+- Confidence score promedio: >0.85
+
+### **Logs Críticos**
+```php
+Log::channel('audio')->info('Processing audio', ['response_id' => $id]);
+Log::channel('ai')->info('AI analysis completed', ['response_id' => $id]);
+Log::channel('reports')->info('Report generated', ['response_id' => $id]);
+```
+
+### **Tablas de Monitoreo**
+- `campaign_responses`: Estado de procesamiento
+- `failed_jobs`: Jobs fallidos
+- `campaign_email_logs`: Tracking de emails
+
+---
+
+Este documento cubre toda la arquitectura técnica actual del sistema Re-Skilling.ai. Para actualizaciones, modificar este archivo cuando se implementen nuevas funcionalidades.
