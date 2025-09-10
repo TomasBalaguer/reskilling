@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class CompanyController extends Controller
 {
@@ -175,13 +176,12 @@ class CompanyController extends Controller
         }
 
         // Generar PDF usando una vista específica
-        $pdf = app('dompdf.wrapper');
-        $pdf->loadView('company.reports.pdf', compact('response'));
+        $pdf = Pdf::loadView('company.reports.pdf', compact('response'));
         
         $filename = sprintf(
             'reporte_%s_%s_%s.pdf',
-            str_slug($response->campaign->name),
-            str_slug($response->respondent_name),
+            \Str::slug($response->campaign->name),
+            \Str::slug($response->respondent_name),
             $response->created_at->format('Y-m-d')
         );
 

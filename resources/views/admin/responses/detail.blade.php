@@ -4,25 +4,25 @@
 @section('page-title', 'Análisis de Respuesta #' . $response->id)
 
 @section('page-actions')
-    <div class="btn-group" role="group">
+    <div class="d-flex gap-2">
         @if($response->comprehensive_report || $response->processing_status === 'analyzed')
             <a href="{{ route('admin.responses.report', $response->id) }}" 
-               class="btn btn-success">
-                <i class="fas fa-download"></i> Descargar Reporte PDF
+               class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;">
+                <i class="fas fa-download me-1"></i> Descargar Reporte PDF
             </a>
         @endif
         
         <form method="POST" action="{{ route('admin.responses.reprocess', $response->id) }}" class="d-inline">
             @csrf
-            <button type="submit" class="btn btn-warning" 
+            <button type="submit" class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;"
                     onclick="return confirm('¿Estás seguro de que quieres re-procesar esta respuesta?')">
-                <i class="fas fa-redo"></i> Re-procesar
+                <i class="fas fa-redo me-1"></i> Re-procesar
             </button>
         </form>
         
         <a href="{{ route('admin.campaigns.detail', $response->campaign_id) }}" 
-           class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left"></i> Volver a Campaña
+           class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;">
+            <i class="fas fa-arrow-left me-1"></i> Volver a Campaña
         </a>
     </div>
 @endsection

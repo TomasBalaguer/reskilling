@@ -5,7 +5,7 @@
 
 @section('page-actions')
     <div class="btn-group" role="group">
-        <a href="{{ route('admin.campaigns') }}" class="btn btn-outline-secondary">
+        <a href="{{ route('admin.campaigns') }}" class="btn btn-outline-secondary rounded-3" style="border-width: 1px; font-weight: normal;">
             <i class="fas fa-arrow-left"></i> Volver
         </a>
     </div>
@@ -209,10 +209,10 @@
                         </div>
                         
                         <div class="d-flex justify-content-end gap-2">
-                            <a href="{{ route('admin.campaigns') }}" class="btn btn-secondary">
+                            <a href="{{ route('admin.campaigns') }}" class="btn btn-outline-secondary rounded-3" style="border-width: 1px; font-weight: normal;">
                                 <i class="fas fa-times"></i> Cancelar
                             </a>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;">
                                 <i class="fas fa-save"></i> Crear Campaña
                             </button>
                         </div>

@@ -6,7 +6,7 @@
 @section('page-actions')
     <div class="btn-group" role="group">
         <a href="{{ route('company.campaigns.detail', $campaign->id) }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
-           class="btn btn-outline-secondary">
+           class="btn btn-outline-secondary rounded-3" style="border-width: 1px; font-weight: normal;">
             <i class="fas fa-arrow-left"></i> Volver a Detalle
         </a>
     </div>
@@ -170,10 +170,10 @@
 
                     <div class="d-flex justify-content-between">
                         <a href="{{ route('company.campaigns.detail', $campaign->id) }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
-                           class="btn btn-secondary">
+                           class="btn btn-outline-secondary rounded-3" style="border-width: 1px; font-weight: normal;">
                             <i class="fas fa-times"></i> Cancelar
                         </a>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;">
                             <i class="fas fa-save"></i> Actualizar Campaña
                         </button>
                     </div>

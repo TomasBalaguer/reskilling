@@ -6,11 +6,11 @@
 @section('page-actions')
     <div class="btn-group" role="group">
         <a href="{{ route('admin.campaigns.create', ['company_id' => $company->id]) }}" 
-           class="btn btn-success">
+           class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;">
             <i class="fas fa-plus"></i> Nueva Campaña
         </a>
         <a href="{{ route('admin.companies.edit', $company->id) }}" 
-           class="btn btn-primary">
+           class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;">
             <i class="fas fa-edit"></i> Editar
         </a>
         
@@ -27,7 +27,7 @@
         </form>
         
         <a href="{{ route('admin.companies') }}" 
-           class="btn btn-outline-secondary">
+           class="btn btn-outline-secondary rounded-3" style="border-width: 1px; font-weight: normal;">
             <i class="fas fa-arrow-left"></i> Volver
         </a>
     </div>
@@ -143,7 +143,7 @@
                     <h5 class="mb-0">
                         <i class="fas fa-users"></i> Usuarios de Empresa ({{ $company->users->count() }})
                     </h5>
-                    <button class="btn btn-success btn-sm" onclick="showCreateUserModal()">
+                    <button class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;" onclick="showCreateUserModal()">
                         <i class="fas fa-plus"></i> Crear Usuario
                     </button>
                 </div>
@@ -179,7 +179,7 @@
                                             <td>{{ $user->created_at->format('d/m/Y') }}</td>
                                             <td>
                                                 <div class="btn-group btn-group-sm" role="group">
-                                                    <button class="btn btn-outline-warning" 
+                                                    <button class="btn btn-outline-warning rounded-3" style="border-width: 1px; font-weight: normal;" 
                                                             onclick="showResetPasswordModal({{ $user->id }}, '{{ $user->name }}')"
                                                             title="Cambiar contraseña">
                                                         <i class="fas fa-key"></i>
@@ -190,7 +190,7 @@
                                                         @csrf
                                                         @method('PATCH')
                                                         <button type="submit" 
-                                                                class="btn btn-outline-{{ $user->is_active ? 'secondary' : 'success' }}"
+                                                                class="btn btn-outline-{{ $user->is_active ? 'secondary' : 'success' }} rounded-3" style="border-width: 1px; font-weight: normal;"
                                                                 onclick="return confirm('¿{{ $user->is_active ? 'Desactivar' : 'Activar' }} este usuario?')"
                                                                 title="{{ $user->is_active ? 'Desactivar' : 'Activar' }} usuario">
                                                             <i class="fas fa-{{ $user->is_active ? 'user-slash' : 'user-check' }}"></i>
@@ -207,7 +207,7 @@
                         <div class="text-center py-4 text-muted">
                             <i class="fas fa-user-plus fa-3x mb-3"></i>
                             <p>No hay usuarios creados para esta empresa</p>
-                            <button class="btn btn-primary" onclick="showCreateUserModal()">
+                            <button class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;" onclick="showCreateUserModal()">
                                 <i class="fas fa-plus"></i> Crear primer usuario
                             </button>
                         </div>
@@ -286,12 +286,12 @@
                                     <td>
                                         <div class="btn-group btn-group-sm" role="group">
                                             <a href="{{ route('admin.campaigns.detail', $campaign->id) }}" 
-                                               class="btn btn-outline-primary" 
+                                               class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;" 
                                                title="Ver detalles">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             <a href="{{ route('admin.campaigns.edit', $campaign->id) }}" 
-                                               class="btn btn-outline-secondary" 
+                                               class="btn btn-outline-secondary rounded-3" style="border-width: 1px; font-weight: normal;" 
                                                title="Editar">
                                                 <i class="fas fa-edit"></i>
                                             </a>
@@ -303,7 +303,7 @@
                                                     @method('PATCH')
                                                     <input type="hidden" name="status" value="active">
                                                     <button type="submit" 
-                                                            class="btn btn-outline-success" 
+                                                            class="btn btn-outline-success rounded-3" style="border-width: 1px; font-weight: normal;" 
                                                             title="Activar"
                                                             onclick="return confirm('¿Activar esta campaña?')">
                                                         <i class="fas fa-play"></i>
@@ -317,7 +317,7 @@
                                                     @method('PATCH')
                                                     <input type="hidden" name="status" value="paused">
                                                     <button type="submit" 
-                                                            class="btn btn-outline-warning" 
+                                                            class="btn btn-outline-warning rounded-3" style="border-width: 1px; font-weight: normal;" 
                                                             title="Pausar"
                                                             onclick="return confirm('¿Pausar esta campaña?')">
                                                         <i class="fas fa-pause"></i>
@@ -326,7 +326,7 @@
                                             @endif
                                             
                                             <a href="{{ route('admin.campaigns.export', $campaign->id) }}" 
-                                               class="btn btn-outline-info" 
+                                               class="btn btn-outline-info rounded-3" style="border-width: 1px; font-weight: normal;" 
                                                title="Exportar datos">
                                                 <i class="fas fa-download"></i>
                                             </a>
@@ -380,8 +380,8 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-success" onclick="submitCreateUser()">Crear Usuario</button>
+                    <button type="button" class="btn btn-outline-secondary rounded-3" style="border-width: 1px; font-weight: normal;" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;" onclick="submitCreateUser()">Crear Usuario</button>
                 </div>
             </div>
         </div>
@@ -415,8 +415,8 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-warning" onclick="submitResetPassword()">Cambiar Contraseña</button>
+                    <button type="button" class="btn btn-outline-secondary rounded-3" style="border-width: 1px; font-weight: normal;" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-outline-warning rounded-3" style="border-width: 1px; font-weight: normal;" onclick="submitResetPassword()">Cambiar Contraseña</button>
                 </div>
             </div>
         </div>

@@ -239,10 +239,10 @@
 
                     <div class="d-flex justify-content-between">
                         <a href="{{ route('company.campaigns') }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
-                           class="btn btn-secondary">
+                           class="btn btn-outline-secondary rounded-3" style="border-width: 1px; font-weight: normal;">
                             <i class="fas fa-arrow-left"></i> Cancelar
                         </a>
-                        <button type="submit" class="btn btn-success">
+                        <button type="submit" class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;">
                             <i class="fas fa-save"></i> Crear Campaña
                         </button>
                     </div>

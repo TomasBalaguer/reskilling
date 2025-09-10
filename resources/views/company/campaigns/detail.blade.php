@@ -7,16 +7,16 @@
     <div class="d-flex gap-2">
         @if($campaign->responses()->count() === 0)
             <a href="{{ route('company.campaigns.edit', $campaign->id) }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
-               class="btn btn-custom-purple btn-sm px-3">
+               class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;">
                 <i class="fas fa-edit me-2"></i>Editar
             </a>
         @endif
         <a href="{{ route('company.campaigns.export', $campaign->id) }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
-           class="btn btn-custom-purple btn-sm px-3">
+           class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;">
             <i class="fas fa-download me-2"></i>Exportar CSV
         </a>
         <a href="{{ route('company.campaigns') }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
-           class="btn btn-custom-purple btn-sm px-3">
+           class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;">
             <i class="fas fa-arrow-left me-2"></i>Volver
         </a>
     </div>
@@ -24,26 +24,6 @@
 
 @section('content')
 <style>
-.btn-custom-purple {
-    color: #11B981;
-    border-color: #11B981;
-    background-color: transparent;
-}
-
-.btn-custom-purple:hover,
-.btn-custom-purple:focus,
-.btn-custom-purple:active,
-.btn-custom-purple.active {
-    color: white;
-    background-color: #11B981;
-    border-color: #11B981;
-    box-shadow: 0 0 0 0.2rem rgba(95, 8, 206, 0.25);
-}
-
-.btn-custom-purple:focus {
-    outline: 0;
-}
-
 .stats-number {
     color: #11B981 !important;
     font-weight: 600;
@@ -176,7 +156,7 @@
                                         <input type="text" class="form-control" 
                                                value="{{ config('app.frontend_url') }}/c/{{ $campaign->code }}" 
                                                id="publicLink" readonly>
-                                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('publicLink')">
+                                        <button class="btn btn-outline-secondary rounded-3" style="border-width: 1px; font-weight: normal;" type="button" onclick="copyToClipboard('publicLink')">
                                             <i class="fas fa-copy"></i> Copiar
                                         </button>
                                     </div>
@@ -209,14 +189,14 @@
                             @endif
                             
                             <div class="d-flex flex-wrap gap-2">
-                                <button class="btn btn-custom-purple btn-sm px-3" onclick="showSingleInviteModal()">
+                                <button class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;" onclick="showSingleInviteModal()">
                                     <i class="fas fa-user-plus me-2"></i>Invitar Persona
                                 </button>
-                                <button class="btn btn-custom-purple btn-sm px-3" onclick="showCSVUploadModal()">
+                                <button class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;" onclick="showCSVUploadModal()">
                                     <i class="fas fa-upload me-2"></i>Subir CSV
                                 </button>
                                 <a href="{{ route('company.campaigns.email-logs', $campaign->id) }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
-                                   class="btn btn-custom-purple btn-sm px-3">
+                                   class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;">
                                     <i class="fas fa-eye me-2"></i>Ver Logs
                                 </a>
                             </div>
@@ -295,7 +275,7 @@
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm" role="group">
-                                                    <button type="button" class="btn btn-outline-primary" 
+                                                    <button type="button" class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;" 
                                                             onclick="copyInvitationLink('{{ $invitation->token }}')" 
                                                             title="Copiar enlace de invitación">
                                                         <i class="fas fa-copy"></i>
@@ -306,7 +286,7 @@
                                                               style="display: inline;">
                                                             @csrf
                                                             <input type="hidden" name="single_email" value="{{ $invitation->email }}">
-                                                            <button type="submit" class="btn btn-outline-success" 
+                                                            <button type="submit" class="btn btn-outline-success rounded-3" style="border-width: 1px; font-weight: normal;" 
                                                                     title="Reenviar invitación">
                                                                 <i class="fas fa-paper-plane"></i>
                                                             </button>
@@ -483,14 +463,14 @@
                                     <td>
                                         <div class="btn-group btn-group-sm" role="group">
                                             <a href="{{ route('company.responses.detail', $response->id) }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
-                                               class="btn btn-outline-primary" 
+                                               class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;" 
                                                title="Ver detalles">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             
                                             @if($response->comprehensive_report || $response->processing_status === 'analyzed')
                                                 <a href="{{ route('company.responses.report', $response->id) }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" 
-                                                   class="btn btn-outline-success" 
+                                                   class="btn btn-outline-success rounded-3" style="border-width: 1px; font-weight: normal;" 
                                                    title="Descargar reporte">
                                                     <i class="fas fa-download"></i>
                                                 </a>
@@ -535,8 +515,8 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="submitSingleInvite()">Enviar Invitación</button>
+                    <button type="button" class="btn btn-outline-secondary rounded-3" style="border-width: 1px; font-weight: normal;" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;" onclick="submitSingleInvite()">Enviar Invitación</button>
                 </div>
             </div>
         </div>
@@ -588,8 +568,8 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="submitCSVUpload()">Agregar Invitados</button>
+                    <button type="button" class="btn btn-outline-secondary rounded-3" style="border-width: 1px; font-weight: normal;" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-outline-primary rounded-3" style="border-width: 1px; font-weight: normal;" onclick="submitCSVUpload()">Agregar Invitados</button>
                 </div>
             </div>
         </div>

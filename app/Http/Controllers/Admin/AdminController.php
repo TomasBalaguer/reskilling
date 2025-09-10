@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Services\ComprehensiveReportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class AdminController extends Controller
 {
@@ -415,13 +416,12 @@ class AdminController extends Controller
         }
 
         // Generar PDF usando una vista específica
-        $pdf = app('dompdf.wrapper');
-        $pdf->loadView('admin.reports.pdf', compact('response'));
+        $pdf = Pdf::loadView('admin.reports.pdf', compact('response'));
         
         $filename = sprintf(
             'reporte_%s_%s_%s.pdf',
-            str_slug($response->campaign->name),
-            str_slug($response->respondent_name),
+            \Str::slug($response->campaign->name),
+            \Str::slug($response->respondent_name),
             $response->created_at->format('Y-m-d')
         );
 

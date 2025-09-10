@@ -26,7 +26,143 @@
     $prosodicAnalysis = $prosodicAnalysis ?? [];
 @endphp
 
-<div class="accordion mb-4" id="mainAccordion">
+<style>
+    .main-accordion .accordion-item {
+        border: none;
+        border-radius: 20px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        overflow: hidden;
+        background: white;
+    }
+    
+    .main-accordion .accordion-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-weight: 500;
+        font-size: 1.1rem;
+        border: none;
+        padding: 1.25rem 1.5rem;
+        border-radius: 0;
+    }
+    
+    .main-accordion .accordion-button:not(.collapsed) {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: none;
+    }
+    
+    .main-accordion .accordion-button::after {
+        filter: brightness(0) invert(1);
+    }
+    
+    .main-accordion .accordion-button:focus {
+        box-shadow: none;
+        border-color: transparent;
+    }
+    
+    .questions-accordion .accordion-item {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        margin-bottom: 0.75rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .questions-accordion .accordion-item:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    
+    .questions-accordion .accordion-button {
+        background: white;
+        color: #374151;
+        font-weight: 400;
+        border: none;
+        padding: 1rem 1.25rem;
+        transition: background 0.2s;
+    }
+    
+    .questions-accordion .accordion-button:not(.collapsed) {
+        background: #f3f4f6;
+        color: #111827;
+    }
+    
+    .questions-accordion .accordion-button:hover {
+        background: #f9fafb;
+    }
+    
+    .questions-accordion .accordion-button:focus {
+        box-shadow: none;
+        border-color: transparent;
+    }
+    
+    .questions-accordion .accordion-body {
+        background: #fafbfc;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .section-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6b7280;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+    
+    .metric-card {
+        background: white;
+        border-radius: 10px;
+        padding: 0.75rem;
+        border: 1px solid #e5e7eb;
+        transition: all 0.2s;
+    }
+    
+    .metric-card:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .emotion-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 0.75rem;
+        text-align: center;
+        transition: all 0.2s;
+    }
+    
+    .emotion-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    
+    .response-text {
+        background: white;
+        border-radius: 10px;
+        padding: 1rem;
+        border: 1px solid #e5e7eb;
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+    
+    .badge-metric {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .observation-box {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border-radius: 12px;
+        padding: 1rem;
+        border: 1px solid #fbbf24;
+    }
+</style>
+
+<div class="accordion main-accordion mb-4" id="mainAccordion">
     <!-- ACORDEÓN 1: PREGUNTAS Y RESPUESTAS -->
     @if($response->questionnaire && count($allResponses) > 0)
         <div class="accordion-item">
@@ -34,18 +170,19 @@
                 <button class="accordion-button" type="button" data-bs-toggle="collapse" 
                         data-bs-target="#collapseQuestions" aria-expanded="true" aria-controls="collapseQuestions">
                     <i class="fas fa-clipboard-list me-2"></i>
-                    <strong>Análisis de Respuestas del Cuestionario</strong>
+                    Análisis de Respuestas del Cuestionario
                 </button>
             </h2>
             <div id="collapseQuestions" class="accordion-collapse collapse show" 
                  aria-labelledby="headingQuestions" data-bs-parent="#mainAccordion">
                 <div class="accordion-body">
-                    @php 
-                        $questionNumber = 1; 
-                        // Si no hay questions del cuestionario, usar las keys de allResponses
-                        $questionKeys = count($questions) > 0 ? array_keys($questions) : array_keys($allResponses);
-                    @endphp
-                    @foreach($allResponses as $questionId => $responseData)
+                    <div class="accordion questions-accordion" id="questionsAccordion">
+                        @php 
+                            $questionNumber = 1; 
+                            // Si no hay questions del cuestionario, usar las keys de allResponses
+                            $questionKeys = count($questions) > 0 ? array_keys($questions) : array_keys($allResponses);
+                        @endphp
+                        @foreach($allResponses as $questionId => $responseData)
                         @php
                             // Obtener el texto de la pregunta
                             $questionText = '';
@@ -75,22 +212,25 @@
                         @endphp
                         @if($responseData)
                             
-                            <div class="question-card mb-4 p-4 border rounded bg-white">
-                                <!-- PREGUNTA -->
-                                <div class="d-flex align-items-start mb-3">
-                                    <span class="badge bg-primary rounded-circle me-3" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">{{ $questionNumber }}</span>
-                                    <div class="flex-grow-1">
-                                        <p class="text-muted mb-2">{{ $questionText }}</p>
-                                    </div>
-                                </div>
-                                
-                                <!-- RESPUESTA TRANSCRITA -->
-                                @if($transcription)
-                                    <div class="mb-3">
-                                        <h6 class="text-primary mb-2">Respuesta Transcrita:</h6>
-                                        <div class="p-3 bg-light rounded">
-                                            {{ $transcription }}
-                                        </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading-{{ $questionId }}">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#collapse-{{ $questionId }}" aria-expanded="false" 
+                                            aria-controls="collapse-{{ $questionId }}">
+                                        <span class="badge bg-gradient rounded-circle me-2" style="background: linear-gradient(135deg, #667eea, #764ba2); min-width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">{{ $questionNumber }}</span>
+                                        <span style="font-size: 0.95rem;">{{ $questionText }}</span>
+                                    </button>
+                                </h2>
+                                <div id="collapse-{{ $questionId }}" class="accordion-collapse collapse" 
+                                     aria-labelledby="heading-{{ $questionId }}" data-bs-parent="#questionsAccordion">
+                                    <div class="accordion-body">
+                                    <!-- RESPUESTA TRANSCRITA -->
+                                    @if($transcription)
+                                        <div class="mb-3">
+                                            <div class="section-label">Respuesta Transcrita</div>
+                                            <div class="response-text">
+                                                {{ $transcription }}
+                                            </div>
                                         
                                         @if($audioUrl = null)
                                             @php
@@ -116,133 +256,173 @@
                                     </div>
                                 @endif
                                 
-                                @if($geminiAnalysis)
-                                    <!-- ANÁLISIS EMOCIONAL -->
-                                    @if(isset($geminiAnalysis['analisis_emocional']))
-                                        <div class="mb-4">
-                                            <h6 class="text-dark mb-3">Análisis Emocional</h6>
-                                            @php $emociones = $geminiAnalysis['analisis_emocional']; @endphp
-                                            
-                                            <div class="row text-center mb-3">
-                                                <div class="col">
-                                                    <div class="emotion-box">
-                                                        <span style="font-size: 2rem;">😊</span><br>
-                                                        <small class="text-muted">Felicidad</small><br>
-                                                        <strong class="text-success">{{ round(($emociones['felicidad'] ?? 0) * 100) }}%</strong>
-                                                    </div>
-                                                </div>
-                                                <div class="col">
-                                                    <div class="emotion-box">
-                                                        <span style="font-size: 2rem;">😢</span><br>
-                                                        <small class="text-muted">Tristeza</small><br>
-                                                        <strong class="text-info">{{ round(($emociones['tristeza'] ?? 0) * 100) }}%</strong>
-                                                    </div>
-                                                </div>
-                                                <div class="col">
-                                                    <div class="emotion-box">
-                                                        <span style="font-size: 2rem;">😰</span><br>
-                                                        <small class="text-muted">Ansiedad</small><br>
-                                                        <strong class="text-warning">{{ round(($emociones['ansiedad'] ?? 0) * 100) }}%</strong>
-                                                    </div>
-                                                </div>
-                                                <div class="col">
-                                                    <div class="emotion-box">
-                                                        <span style="font-size: 2rem;">😠</span><br>
-                                                        <small class="text-muted">Enojo</small><br>
-                                                        <strong class="text-danger">{{ round(($emociones['enojo'] ?? 0) * 100) }}%</strong>
-                                                    </div>
-                                                </div>
-                                                <div class="col">
-                                                    <div class="emotion-box">
-                                                        <span style="font-size: 2rem;">😨</span><br>
-                                                        <small class="text-muted">Miedo</small><br>
-                                                        <strong class="text-secondary">{{ round(($emociones['miedo'] ?? 0) * 100) }}%</strong>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="text-center p-2 bg-light rounded">
-                                                <small class="text-muted">Emoción dominante:</small> 
-                                                <strong class="text-primary">{{ ucfirst($emociones['emocion_dominante'] ?? 'N/A') }}</strong>
-                                            </div>
-                                        </div>
-                                    @endif
-                                    
-                                    <!-- MÉTRICAS DEL HABLA -->
-                                    @if(isset($geminiAnalysis['metricas_prosodicas']))
-                                        <div class="mb-4">
-                                            <h6 class="text-dark mb-3">Métricas del Habla</h6>
-                                            @php $metricas = $geminiAnalysis['metricas_prosodicas']; @endphp
-                                            
-                                            <div class="row">
-                                                <div class="col-md-4 mb-2">
-                                                    <small class="text-muted">Velocidad</small><br>
-                                                    <strong class="text-primary">{{ ucfirst($metricas['velocidad_habla'] ?? 'Normal') }}</strong>
-                                                </div>
-                                                <div class="col-md-4 mb-2">
-                                                    <small class="text-muted">Titubeos</small><br>
-                                                    <strong class="{{ ($metricas['titubeos'] ?? 0) > 2 ? 'text-warning' : 'text-success' }}">
-                                                        {{ $metricas['titubeos'] ?? 0 }}
-                                                    </strong>
-                                                </div>
-                                                <div class="col-md-4 mb-2">
-                                                    <small class="text-muted">Energía Vocal</small><br>
-                                                    <strong class="text-primary">{{ round(($metricas['energia_vocal'] ?? 0) * 100) }}%</strong>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="row">
-                                                <div class="col-md-4 mb-2">
-                                                    <small class="text-muted">Claridad</small><br>
-                                                    <strong class="text-success">{{ round(($metricas['claridad_diccion'] ?? 0) * 100) }}%</strong>
-                                                </div>
-                                                <div class="col-md-4 mb-2">
-                                                    <small class="text-muted">Duración</small><br>
-                                                    <strong>{{ $geminiAnalysis['duracion_segundos'] ?? 'N/A' }}s</strong>
-                                                </div>
-                                                <div class="col-md-4 mb-2">
-                                                    <small class="text-muted">Pausas</small><br>
-                                                    <strong class="{{ ($metricas['pausas_significativas'] ?? 0) > 2 ? 'text-warning' : 'text-success' }}">
-                                                        {{ $metricas['pausas_significativas'] ?? 0 }}
-                                                    </strong>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endif
-                                    
-                                    <!-- INDICADORES PSICOLÓGICOS -->
-                                    @if(isset($geminiAnalysis['indicadores_psicologicos']))
-                                        <div class="mb-4">
-                                            <h6 class="text-dark mb-3">Indicadores Psicológicos</h6>
-                                            @php $indicadores = $geminiAnalysis['indicadores_psicologicos']; @endphp
-                                            
-                                            <div class="row">
-                                                @foreach($indicadores as $indicador => $valor)
-                                                    <div class="col-md-6 mb-2">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <small class="text-muted">{{ ucfirst(str_replace('_', ' ', $indicador)) }}</small>
-                                                            <strong class="{{ $valor >= 0.7 ? 'text-success' : ($valor >= 0.4 ? 'text-warning' : 'text-danger') }}">
-                                                                {{ round($valor * 100) }}%
-                                                            </strong>
+                                    @if($geminiAnalysis)
+                                        <!-- ANÁLISIS EMOCIONAL -->
+                                        @if(isset($geminiAnalysis['analisis_emocional']))
+                                            <div class="mb-3">
+                                                <div class="section-label">Análisis Emocional</div>
+                                                @php $emociones = $geminiAnalysis['analisis_emocional']; @endphp
+                                                
+                                                <div class="row g-2">
+                                                    <div class="col">
+                                                        <div class="emotion-card">
+                                                            <span style="font-size: 1.5rem;">😊</span>
+                                                            <div class="mt-1">
+                                                                <small class="text-muted d-block" style="font-size: 0.7rem;">Felicidad</small>
+                                                                <strong class="text-success">{{ round(($emociones['felicidad'] ?? 0) * 100) }}%</strong>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                @endforeach
+                                                    <div class="col">
+                                                        <div class="emotion-card">
+                                                            <span style="font-size: 1.5rem;">😢</span>
+                                                            <div class="mt-1">
+                                                                <small class="text-muted d-block" style="font-size: 0.7rem;">Tristeza</small>
+                                                                <strong class="text-info">{{ round(($emociones['tristeza'] ?? 0) * 100) }}%</strong>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col">
+                                                        <div class="emotion-card">
+                                                            <span style="font-size: 1.5rem;">😰</span>
+                                                            <div class="mt-1">
+                                                                <small class="text-muted d-block" style="font-size: 0.7rem;">Ansiedad</small>
+                                                                <strong class="text-warning">{{ round(($emociones['ansiedad'] ?? 0) * 100) }}%</strong>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col">
+                                                        <div class="emotion-card">
+                                                            <span style="font-size: 1.5rem;">😠</span>
+                                                            <div class="mt-1">
+                                                                <small class="text-muted d-block" style="font-size: 0.7rem;">Enojo</small>
+                                                                <strong class="text-danger">{{ round(($emociones['enojo'] ?? 0) * 100) }}%</strong>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col">
+                                                        <div class="emotion-card">
+                                                            <span style="font-size: 1.5rem;">😨</span>
+                                                            <div class="mt-1">
+                                                                <small class="text-muted d-block" style="font-size: 0.7rem;">Miedo</small>
+                                                                <strong class="text-secondary">{{ round(($emociones['miedo'] ?? 0) * 100) }}%</strong>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12 mt-2 text-center">
+                                                        <span class="badge-metric" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
+                                                            <i class="fas fa-star me-1"></i>
+                                                            Emoción Dominante: {{ ucfirst($emociones['emocion_dominante'] ?? 'N/A') }}
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    @endif
+                                        @endif
                                     
-                                    <!-- OBSERVACIONES -->
-                                    @if(isset($geminiAnalysis['observaciones']) && $geminiAnalysis['observaciones'])
-                                        <div class="p-3 bg-light rounded border-start border-primary border-3">
-                                            <h6 class="text-dark mb-2">Observaciones del Análisis</h6>
-                                            <p class="mb-0 text-muted">{{ $geminiAnalysis['observaciones'] }}</p>
-                                        </div>
+                                        <!-- MÉTRICAS DEL HABLA -->
+                                        @if(isset($geminiAnalysis['metricas_prosodicas']))
+                                            <div class="mb-3">
+                                                <div class="section-label">Métricas del Habla</div>
+                                                @php $metricas = $geminiAnalysis['metricas_prosodicas']; @endphp
+                                                
+                                                <div class="row g-2">
+                                                    <div class="col-md-4">
+                                                        <div class="metric-card">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <small class="text-muted">Velocidad</small>
+                                                                <strong>{{ ucfirst($metricas['velocidad_habla'] ?? 'Normal') }}</strong>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="metric-card">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <small class="text-muted">Titubeos</small>
+                                                                <span class="badge {{ ($metricas['titubeos'] ?? 0) > 2 ? 'bg-warning' : 'bg-success' }}">
+                                                                    {{ $metricas['titubeos'] ?? 0 }}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="metric-card">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <small class="text-muted">Energía</small>
+                                                                <strong class="text-info">{{ round(($metricas['energia_vocal'] ?? 0) * 100) }}%</strong>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="metric-card">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <small class="text-muted">Claridad</small>
+                                                                <strong class="text-success">{{ round(($metricas['claridad_diccion'] ?? 0) * 100) }}%</strong>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="metric-card">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <small class="text-muted">Duración</small>
+                                                                <strong>{{ $geminiAnalysis['duracion_segundos'] ?? 'N/A' }}s</strong>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="metric-card">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <small class="text-muted">Pausas</small>
+                                                                <span class="badge {{ ($metricas['pausas_significativas'] ?? 0) > 2 ? 'bg-warning' : 'bg-success' }}">
+                                                                    {{ $metricas['pausas_significativas'] ?? 0 }}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    
+                                        <!-- INDICADORES PSICOLÓGICOS -->
+                                        @if(isset($geminiAnalysis['indicadores_psicologicos']))
+                                            <div class="mb-3">
+                                                <div class="section-label">Indicadores Psicológicos</div>
+                                                @php $indicadores = $geminiAnalysis['indicadores_psicologicos']; @endphp
+                                                
+                                                <div class="row g-2">
+                                                    @foreach($indicadores as $indicador => $valor)
+                                                        <div class="col-md-6">
+                                                            <div class="metric-card">
+                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                    <small class="text-muted">{{ ucfirst(str_replace('_', ' ', $indicador)) }}</small>
+                                                                    <span class="badge {{ $valor >= 0.7 ? 'bg-success' : ($valor >= 0.4 ? 'bg-warning' : 'bg-danger') }}">
+                                                                        {{ round($valor * 100) }}%
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        @endif
+                                    
+                                        <!-- OBSERVACIONES -->
+                                        @if(isset($geminiAnalysis['observaciones']) && $geminiAnalysis['observaciones'])
+                                            <div class="observation-box mt-3">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <i class="fas fa-lightbulb text-warning me-2"></i>
+                                                    <span class="section-label mb-0">Observaciones del Análisis</span>
+                                                </div>
+                                                <p class="mb-0 text-dark" style="font-size: 0.9rem; line-height: 1.5;">{{ $geminiAnalysis['observaciones'] }}</p>
+                                            </div>
+                                        @endif
                                     @endif
-                                @endif
+                                    </div>
+                                </div>
                             </div>
                             @php $questionNumber++; @endphp
                         @endif
                     @endforeach
+                    </div>
                 </div>
             </div>
         </div>
@@ -260,7 +440,7 @@
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
                         data-bs-target="#collapseReport" aria-expanded="false" aria-controls="collapseReport">
                     <i class="fas fa-file-medical-alt me-2"></i>
-                    <strong>Reporte Psicológico Integral - Análisis de 15 Competencias</strong>
+                    Reporte Psicológico Integral - Análisis de 15 Competencias
                 </button>
             </h2>
             <div id="collapseReport" class="accordion-collapse collapse" 
