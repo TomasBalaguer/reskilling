@@ -207,7 +207,9 @@ class ComprehensiveReportService
                 $prompt .= "**{$questionId}**:\n";
                 if (is_array($analysis)) {
                     foreach ($analysis as $key => $value) {
-                        $prompt .= "- {$key}: {$value}\n";
+                        // Convert value to string if it's an array
+                        $valueStr = is_array($value) ? json_encode($value) : (string)$value;
+                        $prompt .= "- {$key}: {$valueStr}\n";
                     }
                 }
                 $prompt .= "\n";

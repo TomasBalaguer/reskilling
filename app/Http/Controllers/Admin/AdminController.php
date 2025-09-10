@@ -443,8 +443,9 @@ class AdminController extends Controller
             'comprehensive_report' => null
         ]);
 
-        // Dispatch reprocessing job
+        // Dispatch reprocessing jobs
         \App\Jobs\GenerateAIInterpretationJob::dispatch($response->id)->onQueue('ai-processing');
+        \App\Jobs\GenerateComprehensiveReportJob::dispatch($response->id)->onQueue('reports');
 
         return redirect()
             ->back()
