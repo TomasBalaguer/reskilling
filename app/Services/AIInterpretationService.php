@@ -20,7 +20,9 @@ class AIInterpretationService
     {
         // Configuración desde variables de entorno
         $this->apiKey = config('services.google.api_key');
-        $this->model = config('services.google.model', 'gemini-1.5-flash');
+        $modelName = config('services.google.model', 'gemini-1.5-flash');
+        // Ensure model name has 'models/' prefix for API compatibility
+        $this->model = str_starts_with($modelName, 'models/') ? $modelName : 'models/' . $modelName;
         $this->project = config('services.google.project_id');
         $this->location = config('services.google.location', 'us-central1');
     }
@@ -130,8 +132,8 @@ class AIInterpretationService
     private function callGeminiAI(string $prompt): string
     {
         try {
-            // URL de la API REST de Gemini
-            $url = "https://generativelanguage.googleapis.com/v1/models/{$this->model}:generateContent";
+            // URL de la API REST de Gemini - usando v1beta para Gemini 1.5 Flash
+            $url = "https://generativelanguage.googleapis.com/v1beta/{$this->model}:generateContent";
             
             // Prepara los datos
             $data = [
@@ -140,7 +142,7 @@ class AIInterpretationService
                 ],
                 'generationConfig' => [
                     'temperature' => 0.2,
-                    'maxOutputTokens' => 8192,
+                    'maxOutputTokens' => 1024,  // Start with lower token count for testing
                     'topP' => 0.95,
                     'topK' => 40
                 ]
@@ -209,7 +211,15 @@ class AIInterpretationService
 
             // Leer y codificar el archivo de audio
             Log::info('🔄 Codificando archivo a base64...');
-            $audioData = base64_encode(file_get_contents($fullPath));
+            $audioContent = file_get_contents($fullPath);
+            $audioData = base64_encode($audioContent);
+            
+            // Ensure base64 data is clean (no data:...;base64, prefix)
+            if (str_starts_with($audioData, 'data:')) {
+                $audioData = preg_replace('/^data:[^;]+;base64,/', '', $audioData);
+                Log::info('🧹 Cleaned base64 data prefix');
+            }
+            
             $encodedSize = strlen($audioData);
             Log::info('✅ Archivo codificado', [
                 'base64_size_bytes' => $encodedSize,
@@ -220,7 +230,7 @@ class AIInterpretationService
             $fileForMimeDetection = !empty($originalFileName) ? $originalFileName : $fullPath;
             $mimeType = $this->getAudioMimeType($fileForMimeDetection);
             
-            // Verificar si el formato es soportado por Gemini
+            // Verificar si el formato es soportado por Gemini (v1beta endpoint)
             $supportedFormats = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/aiff', 'audio/aac', 'audio/ogg', 'audio/flac'];
             
             if (!in_array($mimeType, $supportedFormats)) {
@@ -252,11 +262,12 @@ class AIInterpretationService
                 'includes_question' => !empty($questionText)
             ]);
             
-            // URL de la API REST de Gemini
-            $url = "https://generativelanguage.googleapis.com/v1/models/{$this->model}:generateContent";
+            // URL de la API REST de Gemini - usando v1beta para audio support
+            $url = "https://generativelanguage.googleapis.com/v1beta/{$this->model}:generateContent";
             Log::info('🌐 Preparando llamada a Gemini API', [
                 'url' => $url,
                 'model' => $this->model,
+                'api_endpoint' => 'v1beta',
                 'api_key_configured' => !empty($this->apiKey)
             ]);
             
@@ -279,7 +290,7 @@ class AIInterpretationService
                 ],
                 'generationConfig' => [
                     'temperature' => 0.1, // Baja temperatura para análisis consistente
-                    'maxOutputTokens' => 8192,
+                    'maxOutputTokens' => 2048,  // Start with moderate token count for audio analysis
                     'topP' => 0.95,
                     'topK' => 40
                     // Note: responseMimeType is not supported in this API version
@@ -543,12 +554,14 @@ Responde SOLO con el JSON, sin texto adicional.";
         }
         
         $mimeTypes = [
-            'mp3' => 'audio/mpeg',
-            'mp4' => 'audio/mp4',
-            'wav' => 'audio/wav',
-            'webm' => 'audio/webm',
-            'ogg' => 'audio/ogg',
-            'm4a' => 'audio/mp4'
+            'mp3' => 'audio/mpeg',     // Correct MIME type for MP3
+            'mp4' => 'audio/mp4',       // For MP4 audio
+            'wav' => 'audio/wav',       // For WAV files
+            'webm' => 'audio/webm',     // WebM (not supported by Gemini)
+            'ogg' => 'audio/ogg',       // OGG Vorbis
+            'm4a' => 'audio/mp4',       // M4A is MP4 audio container
+            'aac' => 'audio/aac',       // AAC audio
+            'flac' => 'audio/flac'      // FLAC audio
         ];
         
         $mimeType = $mimeTypes[$extension] ?? 'audio/mpeg';
