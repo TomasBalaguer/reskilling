@@ -193,31 +193,22 @@ class AIInterpretationService
             }
 
             // Si es un path relativo al storage, obtener el path completo
-            if (Storage::exists($audioFilePath)) {
-                $fullPath = Storage::path($audioFilePath);
-                Log::info('📁 Usando archivo desde Storage', ['full_path' => $fullPath]);
-            } else {
-                $fullPath = $audioFilePath;
-                Log::info('📁 Usando archivo directo', ['full_path' => $fullPath]);
-            }
-
-            // Verificar tamaño del archivo
-            $fileSize = filesize($fullPath);
-            Log::info('📊 INFORMACIÓN DEL ARCHIVO', [
-                'file_size_bytes' => $fileSize,
-                'file_size_mb' => round($fileSize / 1024 / 1024, 2),
-                'file_extension' => pathinfo($fullPath, PATHINFO_EXTENSION)
-            ]);
+            $fullPath = Storage::exists($audioFilePath) ? Storage::path($audioFilePath) : $audioFilePath;
+            Log::info('📁 Usando archivo desde: ' . ($fullPath === $audioFilePath ? 'path directo' : 'Storage'), ['full_path' => $fullPath]);
 
             // Leer y codificar el archivo de audio
             Log::info('🔄 Codificando archivo a base64...');
             $audioContent = file_get_contents($fullPath);
+            if ($audioContent === false) {
+                Log::error('❌ No se pudo leer el contenido del archivo', ['path' => $fullPath]);
+                throw new \Exception("No se pudo leer el contenido del archivo de audio: {$fullPath}");
+            }
             $audioData = base64_encode($audioContent);
             
             // Ensure base64 data is clean (no data:...;base64, prefix)
             if (str_starts_with($audioData, 'data:')) {
                 $audioData = preg_replace('/^data:[^;]+;base64,/', '', $audioData);
-                Log::info('🧹 Cleaned base64 data prefix');
+                Log::info('🧹 Se limpió el prefijo de datos base64');
             }
             
             $encodedSize = strlen($audioData);
@@ -226,28 +217,19 @@ class AIInterpretationService
                 'base64_size_mb' => round($encodedSize / 1024 / 1024, 2)
             ]);
             
-            // Detectar mime type basado en el archivo original o el temporal
-            $fileForMimeDetection = !empty($originalFileName) ? $originalFileName : $fullPath;
-            $mimeType = $this->getAudioMimeType($fileForMimeDetection);
+            // Detectar mime type basado en el archivo temporal (que es el que realmente existe)
+            // Solo usar el originalFileName para obtener la extensión si es necesario
+            $mimeType = $this->getAudioMimeType($fullPath, $originalFileName);
             
             // Verificar si el formato es soportado por Gemini (v1beta endpoint)
             $supportedFormats = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/aiff', 'audio/aac', 'audio/ogg', 'audio/flac'];
             
             if (!in_array($mimeType, $supportedFormats)) {
-                // Si es WebM, mostrar mensaje específico
-                if ($mimeType === 'audio/webm' || str_contains($mimeType, 'webm')) {
-                    Log::error('❌ Formato WebM no soportado por Gemini', [
-                        'mime_type' => $mimeType,
-                        'message' => 'El navegador está enviando audio en formato WebM. Configure el frontend para usar MP4 o MP3.'
-                    ]);
-                    throw new \Exception("Formato WebM no es soportado por Gemini API. Por favor, configure el frontend para grabar en formato MP4 o MP3.");
-                }
-                
-                Log::warning('⚠️ Formato de audio no soportado por Gemini', [
+                Log::error('❌ Formato de audio no soportado por Gemini', [
                     'mime_type' => $mimeType,
                     'supported_formats' => $supportedFormats
                 ]);
-                throw new \Exception("Formato de audio no soportado: {$mimeType}. Use MP3, MP4 o WAV.");
+                throw new \Exception("Formato de audio no soportado: {$mimeType}. Por favor, use MP3, MP4 o WAV.");
             }
             
             Log::info('🎵 Formato de audio válido para Gemini', [
@@ -277,8 +259,8 @@ class AIInterpretationService
                     [
                         'parts' => [
                             [
-                                'inline_data' => [
-                                    'mime_type' => $mimeType,
+                                'inlineData' => [
+                                    'mimeType' => $mimeType,
                                     'data' => $audioData
                                 ]
                             ],
@@ -290,44 +272,17 @@ class AIInterpretationService
                 ],
                 'generationConfig' => [
                     'temperature' => 0.1, // Baja temperatura para análisis consistente
-                    'maxOutputTokens' => 2048,  // Start with moderate token count for audio analysis
+                    'maxOutputTokens' => 2048,
                     'topP' => 0.95,
                     'topK' => 40
-                    // Note: responseMimeType is not supported in this API version
                 ]
             ];
             
-            Log::info('📤 ENVIANDO SOLICITUD A GEMINI API...', [
-                'payload_structure' => [
-                    'contents_count' => count($data['contents']),
-                    'parts_count' => count($data['contents'][0]['parts']),
-                    'generation_config' => $data['generationConfig'],
-                    'mime_type' => $mimeType,
-                    'audio_data_size_mb' => round(strlen($audioData) / 1024 / 1024, 2),
-                    'prompt_preview' => substr($analysisPrompt, 0, 200) . '...'
-                ],
-                'full_payload_without_audio' => array_merge($data, [
-                    'contents' => [
-                        [
-                            'parts' => [
-                                [
-                                    'inline_data' => [
-                                        'mime_type' => $mimeType,
-                                        'data' => '[AUDIO_DATA_' . round(strlen($audioData) / 1024, 1) . 'KB]'
-                                    ]
-                                ],
-                                [
-                                    'text' => $analysisPrompt
-                                ]
-                            ]
-                        ]
-                    ]
-                ])
-            ]);
+            Log::info('📤 ENVIANDO SOLICITUD A GEMINI API...');
             
             // Realizar solicitud con timeout extendido para audio
             $startTime = microtime(true);
-            $response = Http::timeout(60)
+            $response = Http::timeout(120) // Aumentado el timeout para archivos grandes
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post($url . "?key=" . $this->apiKey, $data);
             $endTime = microtime(true);
@@ -343,54 +298,21 @@ class AIInterpretationService
             
             if ($response->successful()) {
                 $responseBody = $response->json();
-                Log::info('✅ RESPUESTA EXITOSA DE GEMINI', [
-                    'has_candidates' => isset($responseBody['candidates']),
-                    'candidates_count' => isset($responseBody['candidates']) ? count($responseBody['candidates']) : 0
-                ]);
+                
+                if (!isset($responseBody['candidates'][0]['content']['parts'][0]['text'])) {
+                    Log::error('❌ ESTRUCTURA DE RESPUESTA INESPERADA', ['response_body' => $responseBody]);
+                    throw new \Exception('Respuesta de Gemini no contiene el texto esperado.');
+                }
                 
                 $rawResponse = $responseBody['candidates'][0]['content']['parts'][0]['text'];
-                Log::info('📄 CONTENIDO DE LA RESPUESTA', [
-                    'raw_response_length' => strlen($rawResponse),
-                    'raw_response_preview' => substr($rawResponse, 0, 200) . '...'
-                ]);
                 
-                // Intentar decodificar JSON
-                $analysisResult = json_decode($rawResponse, true);
-                
-                if (json_last_error() !== JSON_ERROR_NONE) {
-                    Log::warning('⚠️ RESPUESTA NO ES JSON VÁLIDO', [
-                        'json_error' => json_last_error_msg(),
-                        'raw_response' => $rawResponse
-                    ]);
-                    // Intentar limpiar la respuesta y extraer JSON
-                    $analysisResult = $this->extractJsonFromResponse($rawResponse);
-                    
-                    if ($analysisResult) {
-                        Log::info('✅ JSON EXTRAÍDO EXITOSAMENTE DESPUÉS DE LIMPIEZA');
-                    }
-                }
+                $analysisResult = $this->extractJsonFromResponse($rawResponse);
                 
                 if (!$analysisResult) {
                     Log::error('❌ NO SE PUDO OBTENER ANÁLISIS VÁLIDO', [
                         'raw_response' => $rawResponse
                     ]);
-                    throw new \Exception('No se pudo obtener análisis válido del audio');
-                }
-                
-                // Log del contenido del análisis
-                Log::info('🎯 ANÁLISIS COMPLETADO', [
-                    'transcripcion_length' => isset($analysisResult['transcripcion']) ? strlen($analysisResult['transcripcion']) : 0,
-                    'has_analisis_emocional' => isset($analysisResult['analisis_emocional']),
-                    'has_metricas_prosodicas' => isset($analysisResult['metricas_prosodicas']),
-                    'analysis_keys' => array_keys($analysisResult)
-                ]);
-                
-                if (isset($analysisResult['metricas_prosodicas'])) {
-                    Log::info('🎭 MÉTRICAS PROSÓDICAS OBTENIDAS', $analysisResult['metricas_prosodicas']);
-                }
-                
-                if (isset($analysisResult['analisis_emocional'])) {
-                    Log::info('😊 ANÁLISIS EMOCIONAL OBTENIDO', $analysisResult['analisis_emocional']);
+                    throw new \Exception('No se pudo obtener un análisis válido del audio. La IA no devolvió un JSON bien formado.');
                 }
                 
                 Log::info('🎉 ANÁLISIS DE AUDIO COMPLETADO EXITOSAMENTE', [
@@ -417,7 +339,6 @@ class AIInterpretationService
                     ]
                 ]);
                 
-                // Extraer mensaje de error específico si está disponible
                 $errorMessage = 'Error en análisis de audio: ' . $response->status();
                 if ($errorJson && isset($errorJson['error']['message'])) {
                     $errorMessage .= ' - ' . $errorJson['error']['message'];
@@ -441,24 +362,9 @@ class AIInterpretationService
             return [
                 'transcripcion' => '',
                 'error' => $e->getMessage(),
-                'analisis_emocional' => [
-                    'felicidad' => 0,
-                    'tristeza' => 0,
-                    'ansiedad' => 0,
-                    'enojo' => 0,
-                    'miedo' => 0
-                ],
-                'metricas_prosodicas' => [
-                    'velocidad_habla' => 'no_disponible',
-                    'pausas_significativas' => 0,
-                    'titubeos' => 0,
-                    'energia_vocal' => 0
-                ],
-                'indicadores_psicologicos' => [
-                    'nivel_estres' => 0,
-                    'coherencia_emocional' => 0,
-                    'autenticidad' => 0
-                ]
+                'analisis_emocional' => [],
+                'metricas_prosodicas' => [],
+                'indicadores_psicologicos' => []
             ];
         }
     }
@@ -514,63 +420,61 @@ Responde SOLO con el JSON, sin texto adicional.";
     /**
      * Detecta el mime type del archivo de audio
      */
-    private function getAudioMimeType(string $filePath): string
+    private function getAudioMimeType(string $filePath, string $originalFileName = ''): string
     {
-        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-        
-        // Si es un archivo temporal, intentar detectar el tipo real
-        if ($extension === 'tmp') {
-            // Usar finfo para detectar el MIME type real
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $detectedMime = finfo_file($finfo, $filePath);
-            finfo_close($finfo);
+        // Usar finfo para una detección más precisa con el archivo real (temporal)
+        if (class_exists(\finfo::class) && file_exists($filePath)) {
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $detectedMime = $finfo->file($filePath);
             
-            Log::info('🔍 Detectando MIME type de archivo temporal', [
-                'file' => $filePath,
-                'detected_mime' => $detectedMime
-            ]);
-            
-            // Limpiar el MIME type detectado
             if ($detectedMime) {
-                // Clean up MIME type - remove codec specifications
-                if (str_contains($detectedMime, ';')) {
-                    $detectedMime = explode(';', $detectedMime)[0];
-                }
+                // Limpiar el MIME type - eliminar especificaciones de códec
+                $detectedMime = explode(';', $detectedMime)[0];
+                Log::info('🔍 MIME type detectado con finfo', [
+                    'detected' => $detectedMime, 
+                    'file' => $filePath,
+                    'original_name' => $originalFileName
+                ]);
                 
-                // Si es video/mp4, convertir a audio/mp4 (es común en archivos de audio)
-                if ($detectedMime === 'video/mp4') {
-                    Log::info('🔄 Convirtiendo video/mp4 a audio/mp4 para archivo de audio');
+                // Si se detecta un formato de video, ajustarlo si es un archivo de audio
+                if ($detectedMime === 'video/mp4' || $detectedMime === 'video/webm') {
+                    Log::info('🔄 Ajustando MIME type de video a audio');
                     return 'audio/mp4';
                 }
                 
-                // Si es un formato de audio válido
-                if (str_contains($detectedMime, 'audio/')) {
-                    return $detectedMime;
+                // Normalizar audio/mp3 a audio/mpeg (estándar)
+                if ($detectedMime === 'audio/mp3') {
+                    return 'audio/mpeg';
                 }
+                
+                return $detectedMime;
             }
-            
-            // Si no se puede detectar, asumir MP4 (más común desde el frontend)
-            return 'audio/mp4';
         }
         
+        // Si finfo falla, usar la extensión del archivo original si está disponible
+        $fileForExtension = !empty($originalFileName) ? $originalFileName : $filePath;
+        $extension = strtolower(pathinfo($fileForExtension, PATHINFO_EXTENSION));
+        
+        // Mapeo de extensiones a MIME types
         $mimeTypes = [
-            'mp3' => 'audio/mpeg',     // Correct MIME type for MP3
-            'mp4' => 'audio/mp4',       // For MP4 audio
-            'wav' => 'audio/wav',       // For WAV files
-            'webm' => 'audio/webm',     // WebM (not supported by Gemini)
-            'ogg' => 'audio/ogg',       // OGG Vorbis
-            'm4a' => 'audio/mp4',       // M4A is MP4 audio container
-            'aac' => 'audio/aac',       // AAC audio
-            'flac' => 'audio/flac'      // FLAC audio
+            'mp3' => 'audio/mpeg',
+            'mp4' => 'audio/mp4',
+            'wav' => 'audio/wav',
+            'webm' => 'audio/webm',
+            'ogg' => 'audio/ogg',
+            'm4a' => 'audio/mp4',
+            'aac' => 'audio/aac',
+            'flac' => 'audio/flac',
+            'aiff' => 'audio/aiff',
+            'aif' => 'audio/aiff'
         ];
         
         $mimeType = $mimeTypes[$extension] ?? 'audio/mpeg';
-        
-        // Clean up MIME type - remove codec specifications
-        // e.g., "audio/mp4;codecs=mp4a.40.2" becomes "audio/mp4"
-        if (str_contains($mimeType, ';')) {
-            $mimeType = explode(';', $mimeType)[0];
-        }
+        Log::info('🔍 MIME type detectado por extensión (fallback)', [
+            'detected' => $mimeType, 
+            'extension' => $extension,
+            'from_file' => $fileForExtension
+        ]);
         
         return $mimeType;
     }
@@ -587,18 +491,12 @@ Responde SOLO con el JSON, sin texto adicional.";
             'contains_backticks' => str_contains($response, '```')
         ]);
         
-        // Usar el mismo método simple que funciona en backend
         // Buscar el primer { y el último } para extraer el JSON
         $startPos = strpos($response, '{');
         $endPos = strrpos($response, '}');
         
         if ($startPos !== false && $endPos !== false && $endPos > $startPos) {
             $jsonString = substr($response, $startPos, $endPos - $startPos + 1);
-            Log::info('✂️ JSON extraído por posición de llaves', [
-                'start_pos' => $startPos,
-                'end_pos' => $endPos,
-                'json_length' => strlen($jsonString)
-            ]);
         } else {
             Log::error('❌ No se pudo encontrar JSON válido en la respuesta');
             return null;
@@ -609,20 +507,13 @@ Responde SOLO con el JSON, sin texto adicional.";
             'json_preview' => substr($jsonString, 0, 100) . '...'
         ]);
         
-        // Limpiar caracteres problemáticos
+        // Limpiar caracteres problemáticos y decodificar
         $jsonString = trim($jsonString);
         $jsonString = preg_replace('/[\x00-\x1F\x7F]/', '', $jsonString); // Remover caracteres de control
         
-        // Intentar decodificar
         $decoded = json_decode($jsonString, true);
         
         if (json_last_error() === JSON_ERROR_NONE) {
-            Log::info('✅ JSON DECODIFICADO EXITOSAMENTE', [
-                'keys' => array_keys($decoded),
-                'has_transcripcion' => isset($decoded['transcripcion']),
-                'has_prosodic' => isset($decoded['metricas_prosodicas']),
-                'has_emotional' => isset($decoded['analisis_emocional'])
-            ]);
             return $decoded;
         } else {
             Log::error('❌ ERROR DECODIFICANDO JSON LIMPIO', [
@@ -746,139 +637,48 @@ Responde SOLO con el JSON, sin texto adicional.";
         $prompt .= "  \"interpretations\": {\n";
         $prompt .= "    \"[question_id]\": {\n";
         $prompt .= "      \"content_analysis\": \"Análisis del contenido de la respuesta\",\n";
-        $prompt .= "      \"competencies_demonstrated\": [\"lista de competencias mostradas\"],\n";
-        $prompt .= "      \"key_themes\": [\"temas principales identificados\"],\n";
-        $prompt .= "      \"confidence_score\": 0.85,\n";
-        $prompt .= "      \"depth_of_response\": \"superficial|moderate|deep\",\n";
-        $prompt .= "      \"authenticity_indicators\": \"Indicadores de autenticidad\"\n";
+        $prompt .= "      \"competencies_demonstrated\": [\"lista de competencias (ej: 'pensamiento crítico', 'resolución de problemas')\"],\n";
+        $prompt .= "      \"soft_skills_score\": \"[0.0-10.0]\",\n";
+        $prompt .= "      \"sentiment_analysis\": \"Análisis del sentimiento (ej: 'positivo', 'negativo', 'neutral')\",\n";
+        $prompt .= "      \"confidence_score\": \"[0.0-1.0]\"\n";
         $prompt .= "    }\n";
         $prompt .= "  },\n";
         $prompt .= "  \"soft_skills_analysis\": {\n";
-        $prompt .= "    \"communication_skills\": {\n";
-        $prompt .= "      \"level\": \"alto|medio|bajo\",\n";
-        $prompt .= "      \"evidence\": [\"evidencia específica\"],\n";
-        $prompt .= "      \"score\": 0.85\n";
-        $prompt .= "    },\n";
-        $prompt .= "    \"critical_thinking\": {\n";
-        $prompt .= "      \"level\": \"alto|medio|bajo\",\n";
-        $prompt .= "      \"evidence\": [\"evidencia específica\"],\n";
-        $prompt .= "      \"score\": 0.75\n";
-        $prompt .= "    },\n";
-        $prompt .= "    \"self_awareness\": {\n";
-        $prompt .= "      \"level\": \"alto|medio|bajo\",\n";
-        $prompt .= "      \"evidence\": [\"evidencia específica\"],\n";
-        $prompt .= "      \"score\": 0.80\n";
-        $prompt .= "    },\n";
-        $prompt .= "    \"problem_solving\": {\n";
-        $prompt .= "      \"level\": \"alto|medio|bajo\",\n";
-        $prompt .= "      \"evidence\": [\"evidencia específica\"],\n";
-        $prompt .= "      \"score\": 0.70\n";
-        $prompt .= "    }\n";
+        $prompt .= "    \"[soft_skill_name]\": \"[análisis de la habilidad blanda en un párrafo]\"\n";
         $prompt .= "  },\n";
-        $prompt .= "  \"content_analysis\": {\n";
-        $prompt .= "    \"overall_coherence\": \"Evaluación de coherencia general\",\n";
-        $prompt .= "    \"language_proficiency\": \"alto|medio|bajo\",\n";
-        $prompt .= "    \"emotional_intelligence_indicators\": [\"indicadores identificados\"],\n";
-        $prompt .= "    \"professional_maturity\": \"alto|medio|bajo\"\n";
-        $prompt .= "  },\n";
+        $prompt .= "  \"content_analysis\": \"Análisis general del contenido de las respuestas en un párrafo\",\n";
         $prompt .= "  \"thematic_analysis\": {\n";
-        $prompt .= "    \"main_themes\": [\"tema1\", \"tema2\", \"tema3\"],\n";
-        $prompt .= "    \"career_orientation\": \"descripción de orientación profesional\",\n";
-        $prompt .= "    \"values_expressed\": [\"valor1\", \"valor2\"],\n";
-        $prompt .= "    \"motivation_drivers\": [\"motivación1\", \"motivación2\"]\n";
+        $prompt .= "    \"temas_principales\": [\"tema 1\", \"tema 2\"],\n";
+        $prompt .= "    \"resumen_tematico\": \"Análisis de los temas principales que emergieron de las respuestas\"\n";
         $prompt .= "  },\n";
         $prompt .= "  \"summary\": \"Resumen ejecutivo del análisis\",\n";
         $prompt .= "  \"confidence_scores\": {\n";
-        $prompt .= "    \"overall_analysis\": 0.85,\n";
-        $prompt .= "    \"soft_skills_assessment\": 0.80,\n";
-        $prompt .= "    \"content_reliability\": 0.90\n";
+        $prompt .= "    \"general_confidence\": \"[0.0-1.0]\",\n";
+        $prompt .= "    \"specific_scores\": {\n";
+        $prompt .= "      \"competencia_1\": \"[0.0-1.0]\",\n";
+        $prompt .= "      \"competencia_2\": \"[0.0-1.0]\"\n";
+        $prompt .= "    }\n";
         $prompt .= "  }\n";
         $prompt .= "}\n";
         $prompt .= "```\n\n";
-
-        $prompt .= "Analiza cuidadosamente:\n";
-        $prompt .= "1. La calidad y profundidad de las respuestas\n";
-        $prompt .= "2. Las competencias y habilidades blandas demostradas\n";
-        $prompt .= "3. Los patrones de pensamiento y comunicación\n";
-        $prompt .= "4. La coherencia y autenticidad de las respuestas\n";
-        $prompt .= "5. Los valores y motivaciones expresados\n\n";
+        $prompt .= "Analiza la forma de redactar, la estructura de las ideas, el lenguaje técnico, el uso de metáforas, la capacidad de argumentar y la coherencia de las respuestas para identificar las competencias que se demuestran.\n";
+        $prompt .= "Responde SOLO con el JSON, sin texto adicional.";
         
-        $prompt .= "Responde ÚNICAMENTE con el JSON solicitado, sin texto adicional.\n";
-
         return $prompt;
     }
 
     /**
-     * Process the AI response for text analysis
+     * Procesa la respuesta JSON de Gemini para análisis de texto
      */
-    private function processTextAnalysisResponse(string $aiResponse, array $textResponses): array
+    private function processTextAnalysisResponse(string $aiResponse, array $textResponses): ?array
     {
-        // Try to decode JSON response
-        $analysisResult = json_decode($aiResponse, true);
-        
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            Log::warning('Respuesta de IA para análisis de texto no es JSON válido, intentando extraer');
-            $analysisResult = $this->extractJsonFromResponse($aiResponse);
+        $analysisResult = $this->extractJsonFromResponse($aiResponse);
+
+        if ($analysisResult === null) {
+            return null;
         }
-        
-        if (!$analysisResult) {
-            // Fallback to basic analysis if AI response fails
-            return $this->generateFallbackTextAnalysis($textResponses);
-        }
-        
+
+        // Si la estructura es correcta, se puede retornar
         return $analysisResult;
     }
-
-    /**
-     * Generate fallback analysis if AI processing fails
-     */
-    private function generateFallbackTextAnalysis(array $textResponses): array
-    {
-        $interpretations = [];
-        $totalWords = 0;
-        
-        foreach ($textResponses as $questionId => $responseData) {
-            $wordCount = $responseData['word_count'] ?? 0;
-            $totalWords += $wordCount;
-            
-            $interpretations[$questionId] = [
-                'content_analysis' => 'Análisis básico: Respuesta de ' . $wordCount . ' palabras',
-                'competencies_demonstrated' => ['comunicación_escrita'],
-                'key_themes' => ['respuesta_personal'],
-                'confidence_score' => 0.5,
-                'depth_of_response' => $wordCount > 50 ? 'moderate' : 'superficial',
-                'authenticity_indicators' => 'Evaluación automática básica'
-            ];
-        }
-
-        return [
-            'interpretations' => $interpretations,
-            'soft_skills_analysis' => [
-                'communication_skills' => [
-                    'level' => 'medio',
-                    'evidence' => ['Respuestas textuales proporcionadas'],
-                    'score' => 0.6
-                ]
-            ],
-            'content_analysis' => [
-                'overall_coherence' => 'Análisis básico completado',
-                'language_proficiency' => 'medio',
-                'emotional_intelligence_indicators' => [],
-                'professional_maturity' => 'medio'
-            ],
-            'thematic_analysis' => [
-                'main_themes' => ['comunicación', 'expresión_personal'],
-                'career_orientation' => 'No determinado en análisis básico',
-                'values_expressed' => [],
-                'motivation_drivers' => []
-            ],
-            'summary' => "Análisis básico de {$totalWords} palabras en " . count($textResponses) . " respuestas",
-            'confidence_scores' => [
-                'overall_analysis' => 0.5,
-                'soft_skills_assessment' => 0.4,
-                'content_reliability' => 0.6
-            ]
-        ];
-    }
-
-} 
+}

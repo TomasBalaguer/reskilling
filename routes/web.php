@@ -59,6 +59,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     Route::get('/responses/{id}/report', [AdminController::class, 'generateResponseReport'])->name('responses.report');
     Route::post('/responses/{id}/reprocess', [AdminController::class, 'reprocessResponse'])->name('responses.reprocess');
     Route::delete('/responses/{id}', [AdminController::class, 'deleteResponse'])->name('responses.delete');
+    Route::get('/responses/download-audio/{filename}', [AdminController::class, 'downloadAudio'])->name('responses.download-audio');
 });
 
 // Company admin routes (protected)

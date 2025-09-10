@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Services\ComprehensiveReportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class AdminController extends Controller
@@ -567,5 +568,41 @@ class AdminController extends Controller
         
         return redirect()->back()
             ->with('success', "Usuario {$statusText} exitosamente.");
+    }
+
+    /**
+     * Download audio file from S3
+     */
+    public function downloadAudio($filename)
+    {
+        // Check if file exists in S3
+        $path = 'responses/' . $filename;
+        
+        if (Storage::disk('s3')->exists($path)) {
+            // Generate a temporary signed URL (valid for 5 minutes)
+            $url = Storage::disk('s3')->temporaryUrl($path, now()->addMinutes(5));
+            
+            // Redirect to the signed URL
+            return redirect($url);
+        }
+        
+        // If not in main S3, try audio-storage disk
+        if (Storage::disk('audio-storage')->exists($path)) {
+            $url = Storage::disk('audio-storage')->temporaryUrl($path, now()->addMinutes(5));
+            return redirect($url);
+        }
+        
+        // Try without 'responses/' prefix
+        if (Storage::disk('s3')->exists($filename)) {
+            $url = Storage::disk('s3')->temporaryUrl($filename, now()->addMinutes(5));
+            return redirect($url);
+        }
+        
+        if (Storage::disk('audio-storage')->exists($filename)) {
+            $url = Storage::disk('audio-storage')->temporaryUrl($filename, now()->addMinutes(5));
+            return redirect($url);
+        }
+        
+        return abort(404, 'Audio file not found');
     }
 }
