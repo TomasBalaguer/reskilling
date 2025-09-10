@@ -477,16 +477,17 @@
                                                     <div class="competency-item p-3 border rounded">
                                                         <div class="d-flex justify-content-between align-items-start mb-2">
                                                             <h6 class="mb-0">
-                                                                <span class="badge bg-primary me-2">{{ $comp['numero'] }}</span>
+                                                                <span class="badge me-2" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">{{ $comp['numero'] }}</span>
                                                                 {{ $comp['nombre'] }}
                                                             </h6>
-                                                            <span class="badge bg-{{ $comp['puntaje'] >= 8 ? 'success' : ($comp['puntaje'] >= 5 ? 'warning' : 'danger') }} fs-6">
+                                                            <span class="competency-score-badge fs-6" data-score="{{ $comp['puntaje'] }}">
                                                                 {{ $comp['puntaje'] }}/10
                                                             </span>
                                                         </div>
-                                                        <div class="progress mb-2" style="height: 8px;">
-                                                            <div class="progress-bar bg-{{ $comp['puntaje'] >= 8 ? 'success' : ($comp['puntaje'] >= 5 ? 'warning' : 'danger') }}" 
-                                                                 style="width: {{ $comp['puntaje'] * 10 }}%"></div>
+                                                        <div class="progress mb-2" style="height: 8px; background-color: #f1f5f9;">
+                                                            <div class="competency-progress-bar" 
+                                                                 data-score="{{ $comp['puntaje'] }}"
+                                                                 style="width: {{ $comp['puntaje'] * 10 }}%; height: 100%; transition: width 0.6s ease;"></div>
                                                         </div>
                                                         <small class="text-muted">{{ $comp['descripcion'] }}</small>
                                                     </div>
@@ -557,7 +558,7 @@
     color: #495057;
 }
 .report-section h5 {
-    color: #0d6efd;
+    color: #6366f1;
     font-weight: 600;
 }
 .accordion-button:not(.collapsed) {
@@ -567,5 +568,71 @@
 .accordion-button:focus {
     box-shadow: none;
     border-color: rgba(0,0,0,.125);
+}
+
+/* Competency Scores - Purple Theme */
+.competency-score-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.375rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.competency-score-badge[data-score="10"],
+.competency-score-badge[data-score="9"] {
+    background: linear-gradient(135deg, #8b5cf6, #d946ef);
+    color: white;
+}
+
+.competency-score-badge[data-score="8"],
+.competency-score-badge[data-score="7"] {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+}
+
+.competency-score-badge[data-score="6"],
+.competency-score-badge[data-score="5"] {
+    background: linear-gradient(135deg, #a5b4fc, #c4b5fd);
+    color: #4f46e5;
+}
+
+.competency-score-badge[data-score="4"],
+.competency-score-badge[data-score="3"] {
+    background: #e0e7ff;
+    color: #4f46e5;
+}
+
+.competency-score-badge[data-score="2"],
+.competency-score-badge[data-score="1"],
+.competency-score-badge[data-score="0"] {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+/* Progress Bars - Matching Purple Gradient */
+.competency-progress-bar[data-score="10"],
+.competency-progress-bar[data-score="9"] {
+    background: linear-gradient(90deg, #8b5cf6, #d946ef);
+}
+
+.competency-progress-bar[data-score="8"],
+.competency-progress-bar[data-score="7"] {
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+}
+
+.competency-progress-bar[data-score="6"],
+.competency-progress-bar[data-score="5"] {
+    background: linear-gradient(90deg, #818cf8, #a5b4fc);
+}
+
+.competency-progress-bar[data-score="4"],
+.competency-progress-bar[data-score="3"] {
+    background: #c4b5fd;
+}
+
+.competency-progress-bar[data-score="2"],
+.competency-progress-bar[data-score="1"],
+.competency-progress-bar[data-score="0"] {
+    background: #d1d5db;
 }
 </style>
