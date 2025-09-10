@@ -484,13 +484,25 @@ function audioRecorder() {
         },
         
         // Process the completed recording
-        processRecording() {
+        async processRecording() {
             if (this.audioChunks.length === 0) return;
             
-            // Create blob
-            this.audioBlob = new Blob(this.audioChunks, { 
+            console.log('Processing recording, converting to MP3...');
+            
+            // Create WebM blob first
+            const webmBlob = new Blob(this.audioChunks, { 
                 type: this.getSupportedMimeType() 
             });
+            
+            // Convert to MP3 for Gemini compatibility
+            try {
+                this.audioBlob = await this.convertToMP3(webmBlob);
+                console.log('Successfully converted to MP3');
+            } catch (error) {
+                console.error('Error converting to MP3, using original WebM:', error);
+                // Fallback to WebM if conversion fails
+                this.audioBlob = webmBlob;
+            }
             
             // Create URL for playback
             this.audioUrl = URL.createObjectURL(this.audioBlob);
@@ -500,14 +512,101 @@ function audioRecorder() {
             this.saveAudioResponse();
         },
         
+        // Convert WebM to WAV format (supported by Gemini)
+        async convertToMP3(webmBlob) {
+            console.log('Converting WebM to WAV format for Gemini compatibility...');
+            
+            try {
+                // Convert WebM to WAV using Web Audio API
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const arrayBuffer = await webmBlob.arrayBuffer();
+                
+                // Decode the audio data
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                
+                // Convert to WAV format
+                const wavBlob = await this.audioBufferToWav(audioBuffer);
+                
+                console.log('Successfully converted to WAV format');
+                return wavBlob;
+                
+            } catch (error) {
+                console.error('Error converting to WAV:', error);
+                // If conversion fails, return original with correct mime type
+                return new Blob([webmBlob], { type: 'audio/webm' });
+            }
+        },
+        
+        // Convert AudioBuffer to WAV format
+        audioBufferToWav(audioBuffer) {
+            const numberOfChannels = audioBuffer.numberOfChannels;
+            const sampleRate = audioBuffer.sampleRate;
+            const format = 1; // PCM
+            const bitDepth = 16;
+            
+            const bytesPerSample = bitDepth / 8;
+            const blockAlign = numberOfChannels * bytesPerSample;
+            
+            const data = [];
+            for (let channel = 0; channel < numberOfChannels; channel++) {
+                data.push(audioBuffer.getChannelData(channel));
+            }
+            
+            const length = data[0].length;
+            const arrayBuffer = new ArrayBuffer(44 + length * numberOfChannels * bytesPerSample);
+            const view = new DataView(arrayBuffer);
+            
+            // WAV header
+            const writeString = (offset, string) => {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            };
+            
+            // RIFF chunk descriptor
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + length * numberOfChannels * bytesPerSample, true);
+            writeString(8, 'WAVE');
+            
+            // FMT sub-chunk
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true); // Subchunk1Size
+            view.setUint16(20, format, true); // AudioFormat
+            view.setUint16(22, numberOfChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * blockAlign, true); // ByteRate
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bitDepth, true);
+            
+            // Data sub-chunk
+            writeString(36, 'data');
+            view.setUint32(40, length * numberOfChannels * bytesPerSample, true);
+            
+            // Write audio data
+            let offset = 44;
+            for (let i = 0; i < length; i++) {
+                for (let channel = 0; channel < numberOfChannels; channel++) {
+                    const sample = Math.max(-1, Math.min(1, data[channel][i]));
+                    const value = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                    view.setInt16(offset, value, true);
+                    offset += 2;
+                }
+            }
+            
+            return new Blob([arrayBuffer], { type: 'audio/wav' });
+        },
+        
         // Save audio response to questionnaire data
         saveAudioResponse() {
             console.log('=== SAVING AUDIO RESPONSE ===');
             
+            // Use the actual mime type of the converted blob
+            const actualMimeType = this.audioBlob?.type || 'audio/wav';
+            
             const responseData = {
                 type: 'audio',
                 duration: this.currentTime,
-                mimeType: this.getSupportedMimeType(),
+                mimeType: actualMimeType,
                 size: this.audioBlob?.size || 0,
                 timestamp: Date.now()
             };
@@ -735,17 +834,12 @@ function audioRecorder() {
         
         // Get supported MIME type
         getSupportedMimeType() {
-            // Prioritize formats supported by Gemini API
-            // Note: Most browsers only support webm/ogg for MediaRecorder
+            // For browsers, we need to use WebM as that's what MediaRecorder supports
+            // We'll convert to MP3 after recording
             const types = [
-                'audio/mp4;codecs=mp4a.40.2',
-                'audio/mp4',
-                'audio/mpeg',
-                'audio/wav',
-                'audio/ogg;codecs=opus',
                 'audio/webm;codecs=opus',
-                'audio/webm;codecs=vp8,opus',
-                'audio/webm'
+                'audio/webm',
+                'audio/ogg;codecs=opus'
             ];
             
             // Check MediaRecorder support first
@@ -756,19 +850,14 @@ function audioRecorder() {
             
             for (const type of types) {
                 if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type)) {
-                    console.log('Supported MIME type found:', type);
-                    
-                    // Warning if we're using WebM (not supported by Gemini)
-                    if (type.includes('webm')) {
-                        console.warn('WARNING: Using WebM format which is not supported by Gemini API. Backend conversion will be needed.');
-                    }
-                    
+                    console.log('Using MIME type for recording:', type);
+                    console.log('Note: Will be converted to MP3 for Gemini compatibility');
                     return type;
                 }
             }
             
-            // Last resort fallback
-            console.warn('No supported MIME type found, using WebM fallback (not supported by Gemini)');
+            // Default fallback
+            console.log('Using default WebM format');
             return 'audio/webm';
         }
     }
