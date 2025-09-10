@@ -19,6 +19,40 @@
 @endsection
 
 @section('content')
+    <style>
+        /* Dashboard specific styles */
+        .metric-card {
+            min-height: 100px;
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        .metric-card .card-body {
+            padding: 1.25rem;
+        }
+        
+        .status-badge {
+            font-weight: 400;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .table-responsive {
+            margin: -0.25rem 0;
+        }
+        
+        .table.table-hover tbody tr {
+            transition: background-color 0.15s ease;
+        }
+        
+        .table.table-hover tbody tr:hover {
+            background-color: rgba(34, 197, 94, 0.02);
+        }
+    </style>
     <!-- Métricas principales -->
     <div class="row mb-4">
         <div class="col-lg-3 col-md-6 mb-4">
@@ -26,11 +60,11 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-subtitle mb-2" style="color: var(--medium-gray); font-weight: 500;">Campañas Activas</h6>
-                            <h2 style="color: var(--success-color); font-weight: 700; margin: 0;">{{ $stats['total_campaigns'] }}</h2>
+                            <h6 class="card-subtitle mb-1" style="color: var(--text-secondary); font-weight: 400; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.025em;">Campañas Activas</h6>
+                            <h3 style="color: var(--success-color); font-weight: 500; margin: 0; font-size: 1.75rem;">{{ $stats['total_campaigns'] }}</h3>
                         </div>
-                        <div class="text-success" style="opacity: 0.3;">
-                            <i class="fas fa-bullhorn fa-2x"></i>
+                        <div class="text-success" style="opacity: 0.25;">
+                            <i class="fas fa-bullhorn" style="font-size: 1.5rem;"></i>
                         </div>
                     </div>
                 </div>
@@ -42,11 +76,11 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-subtitle mb-2" style="color: var(--medium-gray); font-weight: 500;">Respuestas Totales</h6>
-                            <h2 style="color: var(--info-color); font-weight: 700; margin: 0;">{{ $stats['total_responses'] }}</h2>
+                            <h6 class="card-subtitle mb-1" style="color: var(--text-secondary); font-weight: 400; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.025em;">Respuestas Totales</h6>
+                            <h3 style="color: var(--info-color); font-weight: 500; margin: 0; font-size: 1.75rem;">{{ $stats['total_responses'] }}</h3>
                         </div>
-                        <div class="text-info" style="opacity: 0.3;">
-                            <i class="fas fa-clipboard-list fa-2x"></i>
+                        <div class="text-info" style="opacity: 0.25;">
+                            <i class="fas fa-clipboard-list" style="font-size: 1.5rem;"></i>
                         </div>
                     </div>
                 </div>
@@ -58,11 +92,11 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-subtitle mb-2" style="color: var(--medium-gray); font-weight: 500;">Procesadas</h6>
-                            <h2 style="color: var(--warning-color); font-weight: 700; margin: 0;">{{ $stats['completed_responses'] }}</h2>
+                            <h6 class="card-subtitle mb-1" style="color: var(--text-secondary); font-weight: 400; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.025em;">Procesadas</h6>
+                            <h3 style="color: var(--warning-color); font-weight: 500; margin: 0; font-size: 1.75rem;">{{ $stats['completed_responses'] }}</h3>
                         </div>
-                        <div class="text-warning" style="opacity: 0.3;">
-                            <i class="fas fa-check-circle fa-2x"></i>
+                        <div class="text-warning" style="opacity: 0.25;">
+                            <i class="fas fa-check-circle" style="font-size: 1.5rem;"></i>
                         </div>
                     </div>
                 </div>
@@ -74,11 +108,11 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-subtitle mb-2" style="color: var(--medium-gray); font-weight: 500;">Pendientes</h6>
-                            <h2 style="color: var(--danger-color); font-weight: 700; margin: 0;">{{ $stats['pending_responses'] }}</h2>
+                            <h6 class="card-subtitle mb-1" style="color: var(--text-secondary); font-weight: 400; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.025em;">Pendientes</h6>
+                            <h3 style="color: var(--danger-color); font-weight: 500; margin: 0; font-size: 1.75rem;">{{ $stats['pending_responses'] }}</h3>
                         </div>
-                        <div class="text-danger" style="opacity: 0.3;">
-                            <i class="fas fa-hourglass-half fa-2x"></i>
+                        <div class="text-danger" style="opacity: 0.25;">
+                            <i class="fas fa-hourglass-half" style="font-size: 1.5rem;"></i>
                         </div>
                     </div>
                 </div>
@@ -91,9 +125,9 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-history"></i> Respuestas Recientes
-                    </h5>
+                    <h6 class="mb-0" style="font-weight: 500; font-size: 0.95rem;">
+                        <i class="fas fa-history" style="font-size: 0.875rem; margin-right: 0.5rem;"></i> Respuestas Recientes
+                    </h6>
                     <a href="{{ route('company.responses') }}{{ request()->has('company_id') ? '?company_id=' . request('company_id') : '' }}" class="btn btn-sm btn-outline-primary">
                         Ver todas <i class="fas fa-arrow-right"></i>
                     </a>

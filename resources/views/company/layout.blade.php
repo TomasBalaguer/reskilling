@@ -11,14 +11,16 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom Button Styles -->
+    <link href="{{ asset('css/buttons.css') }}" rel="stylesheet">
     
     <style>
         :root {
-            --primary-color: #22c55e;
-            --primary-dark: #16a34a;
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
             --primary-gradient: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 50%, #22c55e 100%);
             --secondary-color: #06b6d4;
-            --success-color: #10b981;
+            --success-color: #6366f1;
             --warning-color: #f59e0b;
             --danger-color: #ef4444;
             --info-color: #06b6d4;
@@ -120,13 +122,13 @@
 
         .nav-link {
             color: var(--text-secondary) !important;
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
+            padding: 0.625rem 0.875rem;
+            border-radius: 6px;
             transition: all 0.15s ease;
             text-decoration: none;
             display: flex;
             align-items: center;
-            font-weight: 500;
+            font-weight: 400;
             font-size: 0.875rem;
             border: none;
             background: none;
@@ -144,8 +146,8 @@
         .nav-link.active {
             background: var(--primary-gradient);
             color: white !important;
-            font-weight: 600;
-            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25);
+            font-weight: 500;
+            box-shadow: 0 1px 4px rgba(139, 92, 246, 0.15);
         }
 
         .nav-link.active::before {
@@ -186,50 +188,51 @@
 
         .content-header {
             background: white;
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 1.75rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         }
 
         .content-header h1 {
-            font-size: 1.625rem;
-            font-weight: 600;
+            font-size: 1.375rem;
+            font-weight: 400;
             color: var(--text-primary);
             margin: 0;
+            letter-spacing: -0.025em;
         }
 
         .content-body {
-            padding: 2rem 2.5rem;
+            padding: 1.5rem 2rem;
         }
 
         /* Cards */
         .card {
-            border: none;
-            border-radius: 0.75rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
             transition: all 0.2s ease;
             background: white;
         }
 
         .card:hover {
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
-            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transform: translateY(-1px);
         }
 
         .card-header {
             background: white;
-            border-bottom: 1px solid var(--border-color);
-            padding: 1.5rem;
-            border-radius: 0.75rem 0.75rem 0 0 !important;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            padding: 1rem 1.25rem;
+            border-radius: 0.5rem 0.5rem 0 0 !important;
         }
 
         .card-body {
-            padding: 1.5rem;
+            padding: 1.25rem;
         }
 
         /* Metric Cards */
         .metric-card {
-            background: linear-gradient(135deg, white 0%, #fafafa 100%);
-            border-left: 4px solid var(--primary-color);
+            background: white;
+            border-left: 3px solid var(--primary-color);
             position: relative;
             overflow: hidden;
         }
@@ -264,11 +267,12 @@
 
         /* Buttons */
         .btn {
-            border-radius: 0.5rem;
-            font-weight: 500;
-            padding: 0.625rem 1.25rem;
+            border-radius: 0.375rem;
+            font-weight: 400;
+            padding: 0.5rem 1rem;
             transition: all 0.2s ease;
             border: none;
+            font-size: 0.875rem;
         }
 
         .btn-primary {
@@ -316,15 +320,19 @@
         .table thead th {
             background: var(--light-gray);
             border: none;
-            font-weight: 600;
-            color: var(--dark-color);
-            padding: 1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
         }
 
         .table tbody td {
-            padding: 1rem;
-            border-top: 1px solid var(--border-color);
+            padding: 0.875rem 1rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
             vertical-align: middle;
+            font-size: 0.9rem;
         }
 
         .table tbody tr:hover {
@@ -333,10 +341,10 @@
 
         /* Badges */
         .badge {
-            font-weight: 500;
+            font-weight: 400;
             font-size: 0.75rem;
-            padding: 0.5rem 0.75rem;
-            border-radius: 0.375rem;
+            padding: 0.375rem 0.625rem;
+            border-radius: 0.25rem;
         }
 
         .bg-success {
@@ -441,6 +449,73 @@
             .mobile-menu-btn {
                 display: block;
             }
+        }
+
+        /* Modern Button Styles */
+        .btn-success {
+            background-color: #6366f1 !important;
+            border-color: #6366f1 !important;
+            font-weight: 400 !important;
+        }
+        
+        .btn-success:hover {
+            background-color: #4f46e5 !important;
+            border-color: #4f46e5 !important;
+        }
+        
+        .btn-outline-success {
+            color: #6366f1 !important;
+            border-color: #6366f1 !important;
+            font-weight: 400 !important;
+        }
+        
+        .btn-outline-success:hover {
+            background-color: #6366f1 !important;
+            border-color: #6366f1 !important;
+            color: white !important;
+        }
+        
+        /* Table Action Buttons */
+        table .btn {
+            padding: 0.25rem 0.75rem !important;
+            font-size: 0.875rem !important;
+            font-weight: 400 !important;
+            border-radius: 0.375rem !important;
+            transition: all 0.2s ease;
+        }
+        
+        table .btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        table .btn i {
+            font-size: 0.875rem;
+            margin-right: 0.25rem;
+        }
+        
+        .btn-info {
+            background-color: #6366f1;
+            border-color: #6366f1;
+            font-weight: 400;
+        }
+        
+        .btn-info:hover {
+            background-color: #4f46e5;
+            border-color: #4f46e5;
+            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+        }
+        
+        .btn-warning {
+            font-weight: 400;
+        }
+        
+        .btn-danger {
+            font-weight: 400;
+        }
+        
+        /* Remove bold from all buttons */
+        .btn {
+            font-weight: 400 !important;
         }
     </style>
 </head>
