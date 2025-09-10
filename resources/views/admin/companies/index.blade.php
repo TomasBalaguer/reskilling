@@ -12,9 +12,9 @@
 @endsection
 
 @section('content')
-    <div class="card">
+    <div class="card card-compact">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">
+            <h5 class="mb-0 fw-medium">
                 <i class="fas fa-building"></i> Lista de Empresas
             </h5>
             <span class="badge bg-primary">{{ $companies->total() }} total</span>
@@ -22,7 +22,7 @@
         <div class="card-body">
             @if($companies->count() > 0)
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover table-refined">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -42,17 +42,17 @@
                                         <span class="badge bg-light text-dark">#{{ $company->id }}</span>
                                     </td>
                                     <td>
-                                        <strong>{{ $company->name }}</strong>
+                                        <span class="fw-medium">{{ $company->name }}</span>
                                         @if($company->description)
-                                            <br><small class="text-muted">{{ Str::limit($company->description, 50) }}</small>
+                                            <br><small class="text-muted fw-normal">{{ Str::limit($company->description, 50) }}</small>
                                         @endif
                                     </td>
                                     <td>
                                         @if($company->contact_email)
-                                            <i class="fas fa-envelope"></i> {{ $company->contact_email }}<br>
+                                            <small><i class="fas fa-envelope text-muted"></i> {{ $company->contact_email }}</small><br>
                                         @endif
                                         @if($company->contact_phone)
-                                            <i class="fas fa-phone"></i> {{ $company->contact_phone }}
+                                            <small><i class="fas fa-phone text-muted"></i> {{ $company->contact_phone }}</small>
                                         @endif
                                     </td>
                                     <td>
@@ -73,7 +73,7 @@
                                         <span class="badge bg-light text-dark">{{ $company->responses_count ?? 0 }}</span>
                                     </td>
                                     <td>
-                                        <small>{{ $company->created_at->format('d/m/Y') }}</small>
+                                        <small class="text-muted">{{ $company->created_at->format('d/m/Y') }}</small>
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm" role="group">

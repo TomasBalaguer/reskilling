@@ -31,23 +31,23 @@
     <!-- Información del respondente -->
     <div class="row mb-4">
         <div class="col-md-8">
-            <div class="card">
+            <div class="card card-compact">
                 <div class="card-header">
-                    <h5 class="mb-0">
+                    <h5 class="mb-0 fw-medium">
                         <i class="fas fa-user"></i> Información del Respondente
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <p><strong>Nombre:</strong> {{ $response->respondent_name }}</p>
-                            <p><strong>Email:</strong> {{ $response->respondent_email }}</p>
-                            <p><strong>Edad:</strong> {{ $response->respondent_age ?? 'No especificada' }}</p>
+                            <p><span class="fw-medium">Nombre:</span> {{ $response->respondent_name }}</p>
+                            <p><span class="fw-medium">Email:</span> {{ $response->respondent_email }}</p>
+                            <p><span class="fw-medium">Edad:</span> {{ $response->respondent_age ?? 'No especificada' }}</p>
                         </div>
                         <div class="col-md-6">
-                            <p><strong>Campaña:</strong> {{ $response->campaign->name }}</p>
-                            <p><strong>Empresa:</strong> {{ $response->campaign->company->name }}</p>
-                            <p><strong>Cuestionario:</strong> {{ $response->questionnaire->name ?? 'N/A' }}</p>
+                            <p><span class="fw-medium">Campaña:</span> {{ $response->campaign->name }}</p>
+                            <p><span class="fw-medium">Empresa:</span> {{ $response->campaign->company->name }}</p>
+                            <p><span class="fw-medium">Cuestionario:</span> {{ $response->questionnaire->name ?? 'N/A' }}</p>
                         </div>
                     </div>
                 </div>
@@ -55,9 +55,9 @@
         </div>
         
         <div class="col-md-4">
-            <div class="card">
+            <div class="card card-compact">
                 <div class="card-header">
-                    <h5 class="mb-0">
+                    <h5 class="mb-0 fw-medium">
                         <i class="fas fa-chart-line"></i> Estado del Procesamiento
                     </h5>
                 </div>
@@ -84,14 +84,14 @@
                         
                         <hr>
                         <small class="text-muted">
-                            <strong>Enviado:</strong><br>
+                            <span class="fw-medium">Enviado:</span><br>
                             {{ $response->created_at->format('d/m/Y H:i') }}
                         </small>
                         
                         @if($response->duration_minutes)
                             <br><br>
                             <small class="text-muted">
-                                <strong>Duración:</strong><br>
+                                <span class="fw-medium">Duración:</span><br>
                                 {{ $response->duration_minutes }} minutos
                             </small>
                         @endif

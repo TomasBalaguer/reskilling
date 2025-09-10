@@ -1,0 +1,593 @@
+/* Refined Global Styles for Re-Skilling Platform */
+/* Estilos más finos, elegantes y minimalistas */
+
+:root {
+    --primary-purple: #6366f1;
+    --primary-purple-hover: #4f46e5;
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+    --text-muted: #9ca3af;
+    --border-color: #e5e7eb;
+    --border-light: #f3f4f6;
+    --bg-light: #f9fafb;
+    --bg-white: #ffffff;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+}
+
+/* ========================================
+   TIPOGRAFÍA GLOBAL - Eliminar negritas excesivas
+   ======================================== */
+
+body {
+    font-weight: 400;
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 500; /* Reducido de 600-700 */
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+}
+
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.25rem; }
+h4 { font-size: 1.125rem; }
+h5 { font-size: 1rem; font-weight: 450; }
+h6 { font-size: 0.9375rem; font-weight: 450; }
+
+strong, b {
+    font-weight: 500; /* Reducido de 600-700 */
+}
+
+/* ========================================
+   CARDS - Más refinadas y menos redondeadas
+   ======================================== */
+
+.card {
+    border: 1px solid var(--border-light);
+    border-radius: 0.5rem; /* Reducido de 0.75rem */
+    box-shadow: var(--shadow-sm);
+    background: var(--bg-white);
+    margin-bottom: 1.25rem;
+}
+
+.card-header {
+    background-color: var(--bg-light);
+    border-bottom: 1px solid var(--border-light);
+    padding: 0.875rem 1.25rem; /* Reducido de 1rem 1.5rem */
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.card-header h1,
+.card-header h2,
+.card-header h3,
+.card-header h4,
+.card-header h5,
+.card-header h6 {
+    margin-bottom: 0;
+    font-weight: 450; /* Más ligero */
+    font-size: 1rem; /* Tamaño uniforme */
+    color: var(--text-primary);
+}
+
+.card-body {
+    padding: 1.25rem; /* Reducido de 1.5rem */
+}
+
+.card-footer {
+    background-color: var(--bg-light);
+    border-top: 1px solid var(--border-light);
+    padding: 0.875rem 1.25rem;
+    border-radius: 0 0 0.5rem 0.5rem;
+}
+
+/* Cards más compactas para listas */
+.card-compact .card-header {
+    padding: 0.625rem 1rem;
+}
+
+.card-compact .card-body {
+    padding: 1rem;
+}
+
+/* ========================================
+   TABLAS - Más elegantes y refinadas
+   ======================================== */
+
+.table {
+    font-size: 0.875rem; /* Reducido de 0.9375rem */
+    color: var(--text-primary);
+}
+
+.table thead th {
+    font-weight: 450; /* Mucho más ligero que 600 */
+    font-size: 0.8125rem; /* Más pequeño */
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    padding: 0.625rem 0.875rem; /* Reducido */
+    border-bottom: 2px solid var(--border-light);
+    background-color: var(--bg-light);
+}
+
+.table tbody td {
+    padding: 0.625rem 0.875rem; /* Reducido */
+    font-weight: 400;
+    color: var(--text-primary);
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(99, 102, 241, 0.03);
+}
+
+/* Eliminar negritas de celdas específicas */
+.table tbody td strong {
+    font-weight: 450; /* Apenas un poco más que normal */
+}
+
+/* Enlaces en tablas */
+.table a {
+    color: var(--primary-purple);
+    text-decoration: none;
+    font-weight: 400;
+    transition: color 0.15s ease;
+}
+
+.table a:hover {
+    color: var(--primary-purple-hover);
+    text-decoration: underline;
+}
+
+/* Small text en tablas */
+.table small {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* Tabla responsive */
+.table-responsive {
+    border-radius: 0.375rem;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+/* ========================================
+   BADGES - Más pequeños y sutiles
+   ======================================== */
+
+.badge {
+    font-weight: 450; /* Reducido de 500-600 */
+    font-size: 0.75rem; /* Más pequeño */
+    padding: 0.25rem 0.5rem; /* Más compacto */
+    border-radius: 0.25rem; /* Menos redondeado */
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+/* Badge en headers */
+.card-header .badge {
+    font-size: 0.6875rem;
+    padding: 0.1875rem 0.4375rem;
+}
+
+/* Status badges más sutiles */
+.status-badge {
+    font-size: 0.6875rem;
+    padding: 0.1875rem 0.4375rem;
+    font-weight: 450;
+}
+
+.status-badge i {
+    font-size: 0.625rem;
+    margin-right: 0.25rem;
+}
+
+/* Badge colors más suaves */
+.badge.bg-primary {
+    background-color: var(--primary-purple) !important;
+    opacity: 0.9;
+}
+
+.badge.bg-light {
+    background-color: var(--bg-light) !important;
+    color: var(--text-secondary) !important;
+    border: 1px solid var(--border-light);
+}
+
+.badge.bg-success {
+    opacity: 0.85;
+}
+
+.badge.bg-danger {
+    opacity: 0.85;
+}
+
+.badge.bg-info {
+    opacity: 0.85;
+}
+
+.badge.bg-secondary {
+    opacity: 0.75;
+}
+
+/* ========================================
+   FORMULARIOS - Más delgados y elegantes
+   ======================================== */
+
+.form-label {
+    font-weight: 400; /* Sin negrita */
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.375rem;
+}
+
+.form-control,
+.form-select {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem; /* Más delgado */
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem; /* Menos redondeado */
+    font-weight: 400;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-purple);
+    box-shadow: 0 0 0 0.125rem rgba(99, 102, 241, 0.15);
+}
+
+.form-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* Input groups más compactos */
+.input-group-text {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+    background-color: var(--bg-light);
+    border: 1px solid var(--border-color);
+    font-weight: 400;
+}
+
+/* ========================================
+   BOTONES - Ya refinados pero mejoramos consistencia
+   ======================================== */
+
+.btn {
+    font-weight: 400 !important;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease;
+}
+
+.btn-sm {
+    font-size: 0.8125rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.btn-lg {
+    font-size: 0.9375rem;
+    padding: 0.625rem 1.25rem;
+}
+
+/* Botones en grupos de tabla */
+.btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+/* ========================================
+   ALERTAS - Más sutiles
+   ======================================== */
+
+.alert {
+    font-size: 0.875rem;
+    padding: 0.75rem 1rem; /* Reducido */
+    border-radius: 0.375rem; /* Menos redondeado */
+    border-width: 1px;
+    font-weight: 400;
+}
+
+.alert-heading {
+    font-weight: 500;
+    font-size: 0.9375rem;
+}
+
+/* ========================================
+   NAVEGACIÓN Y SIDEBAR
+   ======================================== */
+
+.navbar {
+    padding: 0.625rem 1rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.navbar-brand {
+    font-weight: 500;
+    font-size: 1.125rem;
+}
+
+.nav-link {
+    font-weight: 400;
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.sidebar {
+    box-shadow: var(--shadow-md);
+}
+
+.sidebar .nav-link {
+    padding: 0.625rem 1rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+
+.sidebar .nav-link.active {
+    font-weight: 450;
+    background-color: rgba(99, 102, 241, 0.08);
+    color: var(--primary-purple);
+}
+
+/* ========================================
+   PAGINACIÓN - Más compacta
+   ======================================== */
+
+.pagination {
+    font-size: 0.875rem;
+}
+
+.page-link {
+    padding: 0.375rem 0.625rem;
+    font-weight: 400;
+    border-radius: 0.25rem;
+    margin: 0 0.125rem;
+}
+
+/* ========================================
+   MODALES - Más refinados
+   ======================================== */
+
+.modal-content {
+    border-radius: 0.5rem;
+    border: none;
+    box-shadow: var(--shadow-lg);
+}
+
+.modal-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.modal-title {
+    font-weight: 500;
+    font-size: 1.125rem;
+}
+
+.modal-body {
+    padding: 1.25rem;
+}
+
+.modal-footer {
+    padding: 0.875rem 1.25rem;
+    border-top: 1px solid var(--border-light);
+}
+
+/* ========================================
+   BREADCRUMBS - Más sutiles
+   ======================================== */
+
+.breadcrumb {
+    font-size: 0.8125rem;
+    padding: 0.5rem 0;
+    background-color: transparent;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb-item {
+    font-weight: 400;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    color: var(--text-muted);
+}
+
+/* ========================================
+   DROPDOWNS - Más refinados
+   ======================================== */
+
+.dropdown-menu {
+    font-size: 0.875rem;
+    border: 1px solid var(--border-light);
+    border-radius: 0.375rem;
+    box-shadow: var(--shadow-md);
+    padding: 0.375rem;
+}
+
+.dropdown-item {
+    padding: 0.4375rem 0.875rem;
+    font-weight: 400;
+    border-radius: 0.25rem;
+}
+
+.dropdown-item:hover {
+    background-color: var(--bg-light);
+}
+
+.dropdown-divider {
+    margin: 0.375rem 0;
+    border-color: var(--border-light);
+}
+
+/* ========================================
+   STATS Y MÉTRICAS - Más elegantes
+   ======================================== */
+
+.stat-card {
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background: var(--bg-white);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+/* ========================================
+   TOOLTIPS Y POPOVERS
+   ======================================== */
+
+.tooltip {
+    font-size: 0.75rem;
+}
+
+.tooltip-inner {
+    padding: 0.375rem 0.625rem;
+    border-radius: 0.25rem;
+}
+
+.popover {
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-md);
+}
+
+.popover-header {
+    font-weight: 500;
+    font-size: 0.875rem;
+    padding: 0.625rem 0.875rem;
+    background-color: var(--bg-light);
+    border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.popover-body {
+    padding: 0.875rem;
+}
+
+/* ========================================
+   UTILIDADES ESPECÍFICAS
+   ======================================== */
+
+/* Texto sin negrita */
+.fw-normal {
+    font-weight: 400 !important;
+}
+
+.fw-medium {
+    font-weight: 450 !important;
+}
+
+.fw-semibold {
+    font-weight: 500 !important;
+}
+
+/* Espaciado más compacto */
+.compact {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+}
+
+/* Bordes más sutiles */
+.border-subtle {
+    border-color: var(--border-light) !important;
+}
+
+/* Sombras más ligeras */
+.shadow-subtle {
+    box-shadow: var(--shadow-sm) !important;
+}
+
+/* ========================================
+   RESPONSIVE ADJUSTMENTS
+   ======================================== */
+
+@media (max-width: 768px) {
+    body {
+        font-size: 0.875rem;
+    }
+    
+    .table {
+        font-size: 0.8125rem;
+    }
+    
+    .card-header,
+    .card-body {
+        padding: 0.875rem;
+    }
+    
+    .btn {
+        font-size: 0.8125rem;
+        padding: 0.4375rem 0.875rem;
+    }
+}
+
+/* ========================================
+   ANIMATIONS - Más sutiles
+   ======================================== */
+
+.fade-in {
+    animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(2px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Transiciones globales más rápidas */
+* {
+    transition-duration: 0.15s !important;
+}
+
+/* ========================================
+   OVERRIDE BOOTSTRAP SPECIFICS
+   ======================================== */
+
+/* Eliminar font-weight bold de Bootstrap */
+.table th,
+.table-dark th,
+.fw-bold,
+dt,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+    font-weight: 500 !important;
+}
+
+/* Labels y text más ligeros */
+label {
+    font-weight: 400 !important;
+}
+
+/* Card titles */
+.card-title {
+    font-weight: 450 !important;
+    font-size: 1rem !important;
+}

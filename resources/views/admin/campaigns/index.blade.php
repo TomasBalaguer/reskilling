@@ -12,9 +12,9 @@
 @endsection
 
 @section('content')
-    <div class="card">
+    <div class="card card-compact">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">
+            <h5 class="mb-0 fw-medium">
                 <i class="fas fa-bullhorn"></i> Lista de Campañas
             </h5>
             <span class="badge bg-primary">{{ $campaigns->total() }} total</span>
@@ -22,7 +22,7 @@
         <div class="card-body">
             @if($campaigns->count() > 0)
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover table-refined">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -42,9 +42,9 @@
                                         <span class="badge bg-light text-dark">#{{ $campaign->id }}</span>
                                     </td>
                                     <td>
-                                        <strong>{{ $campaign->name }}</strong>
+                                        <span class="fw-medium">{{ $campaign->name }}</span>
                                         @if($campaign->description)
-                                            <br><small class="text-muted">{{ Str::limit($campaign->description, 50) }}</small>
+                                            <br><small class="text-muted fw-normal">{{ Str::limit($campaign->description, 50) }}</small>
                                         @endif
                                     </td>
                                     <td>
@@ -78,7 +78,7 @@
                                         <span class="badge bg-light text-dark">{{ $campaign->responses_count }}</span>
                                     </td>
                                     <td>
-                                        <small>{{ $campaign->created_at->format('d/m/Y') }}</small>
+                                        <small class="text-muted">{{ $campaign->created_at->format('d/m/Y') }}</small>
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm" role="group">

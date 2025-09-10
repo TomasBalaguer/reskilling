@@ -3,10 +3,14 @@
 @section('title', 'Todas las Respuestas - Administración')
 @section('page-title', 'Todas las Respuestas')
 
+@push('styles')
+<link href="{{ asset('css/responses-refined.css') }}" rel="stylesheet">
+@endpush
+
 @section('content')
-    <div class="card">
+    <div class="card card-compact">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">
+            <h5 class="mb-0 fw-medium">
                 <i class="fas fa-clipboard-list"></i> Lista de Respuestas
             </h5>
             <span class="badge bg-primary">{{ $responses->total() }} total</span>
@@ -14,7 +18,7 @@
         <div class="card-body">
             @if($responses->count() > 0)
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover table-refined">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -35,7 +39,7 @@
                                         <span class="badge bg-light text-dark">#{{ $response->id }}</span>
                                     </td>
                                     <td>
-                                        <strong>{{ $response->respondent_name }}</strong>
+                                        <span class="fw-medium">{{ $response->respondent_name }}</span>
                                     </td>
                                     <td>{{ $response->respondent_email }}</td>
                                     <td>
@@ -43,7 +47,7 @@
                                            class="text-decoration-none">
                                             {{ $response->campaign->name }}
                                         </a>
-                                        <br><small class="text-muted">{{ $response->campaign->code }}</small>
+                                        <br><small class="text-muted fw-normal">{{ $response->campaign->code }}</small>
                                     </td>
                                     <td>{{ $response->campaign->company->name }}</td>
                                     <td>
@@ -82,7 +86,7 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <small>{{ $response->created_at->format('d/m/Y H:i') }}</small>
+                                        <small class="text-muted">{{ $response->created_at->format('d/m/Y H:i') }}</small>
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm" role="group">

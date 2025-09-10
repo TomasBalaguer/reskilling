@@ -13,6 +13,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Custom Button Styles -->
     <link href="{{ asset('css/buttons.css') }}" rel="stylesheet">
+    <!-- Refined Global Styles -->
+    <link href="{{ asset('css/refined-styles.css') }}" rel="stylesheet">
+    
+    @stack('styles')
     
     <style>
         :root {

@@ -6,9 +6,9 @@
 @section('content')
 <div class="row justify-content-center">
     <div class="col-lg-8">
-        <div class="card">
+        <div class="card card-compact">
             <div class="card-header">
-                <h5 class="mb-0">
+                <h5 class="mb-0 fw-medium">
                     <i class="fas fa-building"></i> Información de la Empresa
                 </h5>
             </div>
@@ -22,7 +22,7 @@
 
                 @if($errors->any())
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <h6><i class="fas fa-exclamation-triangle"></i> Errores en el formulario:</h6>
+                        <h6 class="fw-medium"><i class="fas fa-exclamation-triangle"></i> Errores en el formulario:</h6>
                         <ul class="mb-0">
                             @foreach($errors->all() as $error)
                                 <li>{{ $error }}</li>
@@ -40,7 +40,7 @@
                     <!-- Logo Section -->
                     <div class="row mb-4">
                         <div class="col-12">
-                            <h6 class="fw-bold mb-3" style="color: var(--primary-color);">
+                            <h6 class="fw-medium mb-3" style="color: var(--primary-color);">
                                 <i class="fas fa-image"></i> Logo de la Empresa
                             </h6>
                             
@@ -95,7 +95,7 @@
                     <!-- Company Information -->
                     <div class="row">
                         <div class="col-12">
-                            <h6 class="fw-bold mb-3" style="color: var(--primary-color);">
+                            <h6 class="fw-medium mb-3" style="color: var(--primary-color);">
                                 <i class="fas fa-info-circle"></i> Información General
                             </h6>
                         </div>
