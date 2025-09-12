@@ -29,7 +29,7 @@
         body {
             font-family: "Roboto Slab", serif;
             color: #2c3e50;
-            font-size: 11pt;
+            font-size: 12pt;
             line-height: 1.6;
         }
 
@@ -168,8 +168,8 @@
         /* Spider chart container */
         .spider-chart-container {
             text-align: center;
-            margin: 20px auto;
-            max-width: 400px;
+            margin: 30px auto;
+            max-width: 500px;
         }
 
         /* Competency items */
@@ -208,7 +208,7 @@
 
         .competency-name {
             display: table-cell;
-            font-size: 12px;
+            font-size: 14px;
             color: #475569;
             font-weight: 500;
         }
@@ -245,7 +245,7 @@
         }
 
         .competency-description {
-            font-size: 10px;
+            font-size: 12px;
             color: #64748b;
             line-height: 1.4;
             margin-top: 6px;
@@ -667,7 +667,7 @@
         <p class="section-subtitle">Puntuación individual por competencia evaluada (escala 0-10)</p>
 
         @php
-            $firstPageCompetencias = array_slice($competencias, 0, 5);
+            $firstPageCompetencias = array_slice($competencias, 0, 6);
         @endphp
         
         @foreach($firstPageCompetencias as $comp)
@@ -706,7 +706,7 @@
         <div class="page-spacer"></div>
         
         @php
-            $secondPageCompetencias = array_slice($competencias, 5, 6);
+            $secondPageCompetencias = array_slice($competencias, 6, 7);
         @endphp
         
         @foreach($secondPageCompetencias as $comp)
@@ -745,7 +745,7 @@
         <div class="page-spacer"></div>
         
         @php
-            $thirdPageCompetencias = array_slice($competencias, 11, 4);
+            $thirdPageCompetencias = array_slice($competencias, 13, 2);
         @endphp
         
         @foreach($thirdPageCompetencias as $comp)
