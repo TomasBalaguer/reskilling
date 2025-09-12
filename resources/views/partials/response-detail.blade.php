@@ -4,12 +4,20 @@
     // Obtener preguntas del cuestionario
     $questionnaire = $response->questionnaire;
     $questions = [];
+    
     if ($questionnaire) {
-        $structure = $questionnaire->buildStructure();
-        if (isset($structure['sections'])) {
-            foreach ($structure['sections'] as $section) {
-                if (isset($section['questions'])) {
-                    $questions = array_merge($questions, $section['questions']);
+        // Primero intentar obtener del campo questions directamente (nueva estructura)
+        if ($questionnaire->questions && is_array($questionnaire->questions)) {
+            $questions = $questionnaire->questions;
+        } 
+        // Si no, intentar con buildStructure (estructura antigua)
+        else {
+            $structure = $questionnaire->buildStructure();
+            if (isset($structure['sections'])) {
+                foreach ($structure['sections'] as $section) {
+                    if (isset($section['questions'])) {
+                        $questions = array_merge($questions, $section['questions']);
+                    }
                 }
             }
         }
@@ -219,9 +227,11 @@
                                 }
                             }
                             
-                            // Si no encontramos la pregunta, usar el ID limpio
-                            if (empty($questionText)) {
-                                $questionText = "Pregunta " . str_replace(['reflective_questions_', 'q'], '', $questionId);
+                            // Si no encontramos la pregunta, usar un texto más descriptivo
+                            if (empty($questionText) && empty($questionTitle)) {
+                                $questionNumber = str_replace(['reflective_questions_', 'q'], '', $questionId);
+                                $questionTitle = "Pregunta Reflexiva " . $questionNumber;
+                                $questionText = "Respuesta a pregunta " . $questionNumber;
                             }
                             
                             $geminiAnalysis = $responseData['gemini_analysis'] ?? null;
