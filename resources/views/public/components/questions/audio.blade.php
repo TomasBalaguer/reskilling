@@ -2,19 +2,23 @@
     <!-- Audio Recording Interface -->
     <div class="audio-recorder" :class="{ 'recording': isRecording }">
         <div class="text-center">
-            <!-- Microphone Icon -->
-            <div class="mb-3">
-                <i class="fas fa-microphone fa-4x" 
-                   :class="isRecording ? 'text-danger pulse-recording' : 'text-primary'"></i>
+            <!-- Microphone Icon Button -->
+            <div class="audio-mic-icon" 
+                 :class="{ 'recording': isRecording, 'has-recording': hasRecording && !isRecording }"
+                 @click="toggleRecording()"
+                 :style="isPlaying ? 'pointer-events: none; opacity: 0.7;' : ''">
+                <i class="fas" 
+                   :class="isRecording ? 'fa-stop' : (hasRecording ? 'fa-check' : 'fa-microphone')"></i>
             </div>
             
             <!-- Instructions -->
             <div class="mb-3" x-show="!hasRecording && !isRecording">
-                <h6 class="text-muted">Instrucciones para grabar</h6>
-                <p class="small text-muted mb-0">
-                    <i class="fas fa-info-circle"></i>
-                    Haz clic en el botón de grabar y responde la pregunta con claridad.
-                    <br>Puedes grabar varias veces hasta que estés satisfecho con tu respuesta.
+                <h6 class="mb-2" style="color: var(--primary-color); font-weight: 600; font-size: 1rem;">
+                    <i class="fas fa-microphone-alt me-2"></i>
+                    Graba tu respuesta
+                </h6>
+                <p class="text-muted mb-0" style="font-size: 0.9rem;">
+                    Toca el micrófono para comenzar a grabar
                 </p>
             </div>
             
@@ -28,46 +32,31 @@
             </div>
             
             <!-- Recording Status -->
-            <div class="mb-3" x-show="isRecording">
-                <div class="text-danger">
-                    <i class="fas fa-circle text-danger me-2" style="animation: blink 1s infinite;"></i>
-                    <strong>Grabando...</strong>
-                </div>
-                <p class="small text-muted mt-2">
-                    Habla con claridad y evita ruidos de fondo
+            <div class="audio-status-message recording" x-show="isRecording">
+                <i class="fas fa-circle me-2" style="animation: blink 1s infinite;"></i>
+                <strong>Grabando...</strong>
+                <p class="small mb-0 mt-1">
+                    Habla con claridad y naturalidad
                 </p>
             </div>
             
             <!-- Playback Info -->
-            <div class="mb-3" x-show="hasRecording && !isRecording">
-                <div class="text-success">
-                    <i class="fas fa-check-circle text-success me-2"></i>
-                    <strong>Audio grabado exitosamente</strong>
-                </div>
-                <p class="small text-muted mt-2">
-                    Puedes reproducir tu grabación o grabar nuevamente si lo deseas
+            <div class="audio-status-message success" x-show="hasRecording && !isRecording">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong>Audio grabado</strong>
+                <p class="small mb-0 mt-1">
+                    Tu respuesta está lista
                 </p>
             </div>
         </div>
         
         <!-- Audio Controls -->
-        <div class="audio-controls">
-            <!-- Record Button -->
-            <button type="button" 
-                    class="btn btn-lg"
-                    :class="isRecording ? 'btn-danger' : 'btn-primary'"
-                    @click="toggleRecording()"
-                    :disabled="isPlaying">
-                <i class="fas" 
-                   :class="isRecording ? 'fa-stop' : 'fa-microphone'"></i>
-                <span x-text="isRecording ? 'Detener' : 'Grabar'"></span>
-            </button>
+        <div class="audio-controls" x-show="hasRecording && !isRecording">
             
             <!-- Play Button -->
             <button type="button" 
-                    class="btn btn-outline-success btn-lg"
+                    class="btn btn-success"
                     @click="togglePlayback()"
-                    x-show="hasRecording && !isRecording"
                     :disabled="isRecording">
                 <i class="fas" 
                    :class="isPlaying ? 'fa-pause' : 'fa-play'"></i>
@@ -76,12 +65,11 @@
             
             <!-- Reset Button -->
             <button type="button" 
-                    class="btn btn-outline-warning btn-lg"
+                    class="btn btn-outline-secondary"
                     @click="resetRecording()"
-                    x-show="hasRecording && !isRecording"
                     :disabled="isRecording || isPlaying">
                 <i class="fas fa-redo"></i>
-                <span>Grabar de nuevo</span>
+                <span>Nueva grabación</span>
             </button>
         </div>
         

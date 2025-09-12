@@ -138,17 +138,37 @@ class ReflectiveQuestionsStrategy extends AbstractQuestionnaireStrategy
         ];
 
         $transformedQuestions = [];
-        foreach ($questions as $id => $text) {
-            $transformedQuestions[] = [
-                'id' => $id,
-                'text' => $text,
-                'type' => 'audio_response',
-                'required' => true,
-                'order' => (int) str_replace('q', '', $id),
-                'skill_focus' => $skillFocusMap[$id] ?? 'General',
-                'max_duration' => $maxDurationMap[$id] ?? 180,
-                'validation_rules' => ['required', 'file', 'mimes:mp3,wav,m4a,aac', 'max:51200']
-            ];
+        foreach ($questions as $id => $questionData) {
+            // Check if question data is in new format with title and skills
+            if (is_array($questionData) && isset($questionData['question'])) {
+                // New format: { "question": "text", "title": "title", "skills": "skills", "type": "audio" }
+                $transformedQuestions[] = [
+                    'id' => $id,
+                    'text' => $questionData['question'], // Question text with \n for line breaks
+                    'title' => $questionData['title'] ?? $skillFocusMap[$id] ?? 'General',
+                    'skills' => $questionData['skills'] ?? '',
+                    'type' => $questionData['type'] ?? 'audio_response',
+                    'required' => true,
+                    'order' => (int) str_replace('q', '', $id),
+                    'skill_focus' => $skillFocusMap[$id] ?? 'General', // Keep for backward compatibility
+                    'max_duration' => $maxDurationMap[$id] ?? 180,
+                    'validation_rules' => ['required', 'file', 'mimes:mp3,wav,m4a,aac', 'max:51200']
+                ];
+            } else {
+                // Old format: simple string - maintain backward compatibility
+                $transformedQuestions[] = [
+                    'id' => $id,
+                    'text' => is_string($questionData) ? $questionData : (string)$questionData,
+                    'title' => $skillFocusMap[$id] ?? 'General',
+                    'skills' => '', // No skills in old format
+                    'type' => 'audio_response',
+                    'required' => true,
+                    'order' => (int) str_replace('q', '', $id),
+                    'skill_focus' => $skillFocusMap[$id] ?? 'General',
+                    'max_duration' => $maxDurationMap[$id] ?? 180,
+                    'validation_rules' => ['required', 'file', 'mimes:mp3,wav,m4a,aac', 'max:51200']
+                ];
+            }
         }
 
         return $transformedQuestions;

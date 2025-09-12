@@ -210,12 +210,24 @@
 
         /* Question Cards */
         .question-card {
-            background: white;
-            border-radius: 1rem;
-            padding: 2rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            border: 1px solid var(--border-color);
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+            border-radius: 1.5rem;
+            padding: 3rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .question-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
         }
 
         .question-title {
@@ -224,37 +236,184 @@
             color: var(--dark-color);
             margin-bottom: 1rem;
         }
+        
+        /* Question Components */
+        .question-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .question-main-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.75rem;
+            line-height: 1.3;
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        .question-skills {
+            display: inline-block;
+            font-style: italic;
+            color: var(--primary-color);
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+            padding: 0.4rem 1.2rem;
+            background: rgba(99, 102, 241, 0.08);
+            border-radius: 2rem;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            animation: fadeInUp 0.6s ease-out 0.1s both;
+        }
+        
+        .question-text {
+            font-size: 1rem;
+            color: var(--dark-color);
+            line-height: 1.7;
+            white-space: pre-line;
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 1rem;
+            border: 1px solid rgba(229, 231, 235, 0.5);
+            animation: fadeInUp 0.6s ease-out 0.2s both;
+            text-align: left;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
         /* Audio Components */
         .audio-recorder {
-            background: var(--light-gray);
-            border-radius: 1rem;
-            padding: 2rem;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.03) 0%, rgba(139, 92, 246, 0.03) 100%);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
             text-align: center;
-            border: 2px dashed var(--border-color);
+            border: 2px solid rgba(99, 102, 241, 0.15);
+            transition: all 0.4s ease;
+            margin-top: 2rem;
         }
 
         .audio-recorder.recording {
             border-color: var(--danger-color);
-            background: rgba(239, 68, 68, 0.05);
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.08) 100%);
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.2);
+            animation: recordingPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes recordingPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        .audio-mic-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1.5rem;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        }
+        
+        .audio-mic-icon:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 35px rgba(99, 102, 241, 0.4);
+        }
+        
+        .audio-mic-icon.recording {
+            background: linear-gradient(135deg, var(--danger-color) 0%, #dc2626 100%);
+            animation: pulse 1.5s infinite;
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+        }
+        
+        .audio-mic-icon.has-recording {
+            background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        }
+        
+        .audio-mic-icon i {
+            font-size: 3rem;
+            color: white;
         }
 
         .audio-controls {
             display: flex;
             justify-content: center;
             gap: 1rem;
-            margin-top: 1rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .audio-controls .btn {
+            min-width: 140px;
+            padding: 0.75rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .audio-controls .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         .timer {
             font-size: 1.5rem;
             font-weight: 600;
-            color: var(--primary-color);
-            margin: 1rem 0;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0.75rem 0;
+            letter-spacing: 1px;
         }
 
         .timer.recording {
+            background: linear-gradient(135deg, var(--danger-color) 0%, #dc2626 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .audio-status-message {
+            padding: 0.75rem 1.25rem;
+            border-radius: 1rem;
+            margin: 0.75rem 0;
+            font-weight: 500;
+            font-size: 0.9rem;
+            animation: fadeInUp 0.5s ease-out;
+        }
+        
+        .audio-status-message.success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        
+        .audio-status-message.recording {
+            background: rgba(239, 68, 68, 0.1);
             color: var(--danger-color);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        
+        .audio-status-message .small {
+            font-size: 0.8rem;
         }
 
         /* Footer */
@@ -287,14 +446,94 @@
             100% { transform: scale(1); }
         }
 
+        /* Navigation Controls */
+        .question-nav {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            border: 1px solid rgba(99, 102, 241, 0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .question-nav .btn {
+            border-radius: 2rem;
+            padding: 0.75rem 2rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .question-nav .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.2);
+        }
+        
+        .progress-indicator {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 2rem;
+            color: var(--primary-color);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
         /* Responsive */
         @media (max-width: 768px) {
+            .question-card {
+                padding: 2rem 1.5rem;
+            }
+            
+            .question-main-title {
+                font-size: 1.25rem;
+            }
+            
+            .question-text {
+                font-size: 0.95rem;
+                padding: 1.25rem;
+                line-height: 1.6;
+            }
+            
+            .question-skills {
+                font-size: 0.8rem;
+                padding: 0.35rem 1rem;
+            }
+            
+            .audio-mic-icon {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .audio-mic-icon i {
+                font-size: 2.5rem;
+            }
+            
+            .timer {
+                font-size: 1.5rem;
+            }
+            
+            .audio-controls .btn {
+                min-width: 120px;
+                padding: 0.6rem 1.2rem;
+                font-size: 0.95rem;
+            }
+            
             .card-body {
                 padding: 1.5rem;
             }
             
             .btn {
                 padding: 0.75rem 1.25rem;
+            }
+            
+            .question-nav {
+                padding: 1rem;
+            }
+            
+            .question-nav .btn {
+                padding: 0.6rem 1.5rem;
+                font-size: 0.95rem;
             }
             
             .question-card {

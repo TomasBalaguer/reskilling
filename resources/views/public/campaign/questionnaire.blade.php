@@ -53,9 +53,33 @@
         </div>
 
         <!-- Current Question -->
-        <div x-show="currentQuestion">
+        <div x-show="currentQuestion" class="question-wrapper">
             <div class="mb-4">
-                <h6 class="fw-bold mb-3" x-text="currentQuestion?.text"></h6>
+                <!-- Question Number Badge -->
+                <div class="mb-4">
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill">
+                        <i class="fas fa-question-circle me-2"></i>
+                        Pregunta <span x-text="currentQuestionIndex + 1"></span> de <span x-text="currentSection?.questions?.length || 0"></span>
+                    </span>
+                </div>
+                
+                <!-- Question Title -->
+                <template x-if="currentQuestion?.title">
+                    <h2 class="question-main-title" x-text="currentQuestion?.title"></h2>
+                </template>
+                
+                <!-- Skills -->
+                <template x-if="currentQuestion?.skills">
+                    <div class="text-center mb-4">
+                        <span class="question-skills">
+                            <i class="fas fa-sparkles me-2"></i>
+                            <span x-text="currentQuestion?.skills"></span>
+                        </span>
+                    </div>
+                </template>
+                
+                <!-- Question Text with line breaks -->
+                <div class="question-text" x-html="currentQuestion?.question ? currentQuestion.question.replace(/\\n/g, '<br>') : (currentQuestion?.text?.replace(/\\n/g, '<br>') || '')"></div>
                 
                 <!-- Question Type Specific Components -->
                 <div x-show="currentSection?.response_type === 'audio_response'">
@@ -81,39 +105,46 @@
         </div>
 
         <!-- Navigation -->
-        <div class="d-flex justify-content-between align-items-center mt-4 pt-4 border-top">
-            <button type="button" 
-                    class="btn btn-outline-secondary"
-                    @click="previousQuestion()"
-                    :disabled="currentQuestionIndex === 0 && currentSectionIndex === 0">
-                <i class="fas fa-arrow-left"></i> Anterior
-            </button>
-            
-            <div class="d-flex align-items-center">
-                <span class="text-muted small me-3">
-                    Pregunta <span x-text="currentQuestionIndex + 1"></span> de <span x-text="currentSection?.questions?.length || 0"></span>
-                </span>
-                
+        <div class="question-nav">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <button type="button" 
-                        class="btn btn-outline-primary me-2"
-                        @click="nextQuestion()"
-                        x-show="!isLastQuestion || !isLastSection"
-                        :disabled="!hasCurrentResponse">
-                    Siguiente <i class="fas fa-arrow-right"></i>
+                        class="btn btn-outline-secondary"
+                        @click="previousQuestion()"
+                        :disabled="currentQuestionIndex === 0 && currentSectionIndex === 0">
+                    <i class="fas fa-chevron-left me-2"></i>
+                    <span class="d-none d-sm-inline">Anterior</span>
                 </button>
                 
-                <button type="button" 
-                        class="btn btn-success"
-                        @click="submitQuestionnaire()"
-                        x-show="isLastQuestion && isLastSection"
-                        :disabled="!hasCurrentResponse || submitting">
-                    <span x-show="!submitting">
-                        <i class="fas fa-check"></i> Finalizar
-                    </span>
-                    <span x-show="submitting">
-                        <i class="fas fa-spinner fa-spin"></i> Enviando...
-                    </span>
-                </button>
+                <div class="progress-indicator">
+                    <i class="fas fa-tasks me-2"></i>
+                    <span x-text="currentQuestionIndex + 1"></span> / <span x-text="currentSection?.questions?.length || 0"></span>
+                </div>
+                
+                <div>
+                    <button type="button" 
+                            class="btn btn-primary"
+                            @click="nextQuestion()"
+                            x-show="!isLastQuestion || !isLastSection"
+                            :disabled="!hasCurrentResponse">
+                        <span class="d-none d-sm-inline">Siguiente</span>
+                        <i class="fas fa-chevron-right ms-2"></i>
+                    </button>
+                    
+                    <button type="button" 
+                            class="btn btn-success"
+                            @click="submitQuestionnaire()"
+                            x-show="isLastQuestion && isLastSection"
+                            :disabled="!hasCurrentResponse || submitting">
+                        <span x-show="!submitting">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <span class="d-none d-sm-inline">Finalizar</span>
+                        </span>
+                        <span x-show="submitting">
+                            <i class="fas fa-spinner fa-spin me-2"></i>
+                            <span class="d-none d-sm-inline">Enviando...</span>
+                        </span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

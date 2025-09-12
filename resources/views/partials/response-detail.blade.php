@@ -184,25 +184,27 @@
                         @endphp
                         @foreach($allResponses as $questionId => $responseData)
                         @php
-                            // Obtener el texto de la pregunta
+                            // Obtener los datos de la pregunta
                             $questionText = '';
+                            $questionTitle = '';
+                            $questionSkills = '';
+                            
                             if (isset($questions[$questionId])) {
-                                $questionText = is_array($questions[$questionId]) ? 
-                                              ($questions[$questionId]['text'] ?? $questions[$questionId]) : 
-                                              $questions[$questionId];
-                            } else {
-                                // Mapeo de preguntas reflexivas por defecto
-                                $defaultQuestions = [
-                                    'reflective_questions_q1' => 'Si pudieras mandarle un mensaje a vos mismo/a hace unos años, ¿qué te dirías sobre quién sos hoy y lo que fuiste aprendiendo de vos?',
-                                    'reflective_questions_q2' => 'Contame sobre algo que no te salió como esperabas. ¿Cómo lo viviste y qué hiciste para seguir adelante?',
-                                    'reflective_questions_q3' => 'Pensá en una decisión importante que tuviste que tomar. ¿Cómo la encaraste y qué aprendiste de esa experiencia?',
-                                    'reflective_questions_q4' => '¿Cómo manejas las situaciones cuando hay tensión o desacuerdo con otros? Dame un ejemplo.',
-                                    'reflective_questions_q5' => 'Contame sobre una vez que resolviste un problema de manera creativa o diferente.',
-                                    'reflective_questions_q6' => '¿Qué te motiva hoy y qué te gustaría lograr en el futuro?',
-                                    'reflective_questions_q7' => 'Imaginate que alguien que conocés trabajó mucho en algo y no le dieron el reconocimiento que esperaba. ¿Cómo creés que se sintió? ¿Qué harías vos en su lugar?'
-                                ];
-                                
-                                $questionText = $defaultQuestions[$questionId] ?? "Pregunta " . str_replace('reflective_questions_q', '', $questionId);
+                                if (is_array($questions[$questionId])) {
+                                    // Nueva estructura con question, title, skills
+                                    $questionText = $questions[$questionId]['question'] ?? 
+                                                   $questions[$questionId]['text'] ?? 
+                                                   $questions[$questionId];
+                                    $questionTitle = $questions[$questionId]['title'] ?? '';
+                                    $questionSkills = $questions[$questionId]['skills'] ?? '';
+                                } else {
+                                    $questionText = $questions[$questionId];
+                                }
+                            }
+                            
+                            // Si no encontramos la pregunta, usar el ID limpio
+                            if (empty($questionText)) {
+                                $questionText = "Pregunta " . str_replace(['reflective_questions_', 'q'], '', $questionId);
                             }
                             
                             $geminiAnalysis = $responseData['gemini_analysis'] ?? null;
@@ -218,12 +220,34 @@
                                             data-bs-target="#collapse-{{ $questionId }}" aria-expanded="false" 
                                             aria-controls="collapse-{{ $questionId }}">
                                         <span class="badge bg-gradient rounded-circle me-2" style="background: linear-gradient(135deg, #667eea, #764ba2); min-width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">{{ $questionNumber }}</span>
-                                        <span style="font-size: 0.95rem;">{{ $questionText }}</span>
+                                        <div style="font-size: 0.95rem;">
+                                            @if($questionTitle)
+                                                <strong>{{ $questionTitle }}</strong>
+                                                @if($questionSkills)
+                                                    <span class="text-muted ms-2" style="font-size: 0.85rem; font-style: italic;">({{ $questionSkills }})</span>
+                                                @endif
+                                            @else
+                                                {{ $questionText }}
+                                            @endif
+                                        </div>
                                     </button>
                                 </h2>
                                 <div id="collapse-{{ $questionId }}" class="accordion-collapse collapse" 
                                      aria-labelledby="heading-{{ $questionId }}" data-bs-parent="#questionsAccordion">
                                     <div class="accordion-body">
+                                    <!-- PREGUNTA COMPLETA -->
+                                    @if($questionText && $questionTitle)
+                                        <div class="mb-3 p-3 bg-light rounded">
+                                            <h6 class="text-primary mb-2">{{ $questionTitle }}</h6>
+                                            @if($questionSkills)
+                                                <p class="text-muted small mb-2" style="font-style: italic;">
+                                                    <i class="fas fa-star me-1"></i> Skills evaluadas: {{ $questionSkills }}
+                                                </p>
+                                            @endif
+                                            <p class="mb-0" style="white-space: pre-line;">{{ $questionText }}</p>
+                                        </div>
+                                    @endif
+                                    
                                     <!-- RESPUESTA TRANSCRITA -->
                                     @if($transcription)
                                         <div class="mb-3">
