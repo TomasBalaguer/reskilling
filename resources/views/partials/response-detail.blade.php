@@ -160,6 +160,23 @@
         padding: 1rem;
         border: 1px solid #fbbf24;
     }
+    
+    .btn-outline-primary {
+        transition: all 0.3s ease;
+    }
+    
+    .btn-outline-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+    }
+    
+    .collapse {
+        transition: height 0.35s ease;
+    }
+    
+    .bg-light {
+        background: linear-gradient(135deg, #f8f9fa 0%, #f3f4f6 100%) !important;
+    }
 </style>
 
 <div class="accordion main-accordion mb-4" id="mainAccordion">
@@ -235,16 +252,31 @@
                                 <div id="collapse-{{ $questionId }}" class="accordion-collapse collapse" 
                                      aria-labelledby="heading-{{ $questionId }}" data-bs-parent="#questionsAccordion">
                                     <div class="accordion-body">
-                                    <!-- PREGUNTA COMPLETA -->
-                                    @if($questionText && $questionTitle)
-                                        <div class="mb-3 p-3 bg-light rounded">
-                                            <h6 class="text-primary mb-2">{{ $questionTitle }}</h6>
-                                            @if($questionSkills)
-                                                <p class="text-muted small mb-2" style="font-style: italic;">
-                                                    <i class="fas fa-star me-1"></i> Skills evaluadas: {{ $questionSkills }}
-                                                </p>
-                                            @endif
-                                            <p class="mb-0" style="white-space: pre-line;">{{ $questionText }}</p>
+                                    <!-- PREGUNTA COMPLETA (COLAPSABLE) -->
+                                    @if($questionText)
+                                        <div class="mb-3">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <button class="btn btn-sm btn-outline-primary" type="button" 
+                                                        data-bs-toggle="collapse" 
+                                                        data-bs-target="#question-detail-{{ $questionId }}" 
+                                                        aria-expanded="false"
+                                                        onclick="this.innerHTML = this.getAttribute('aria-expanded') === 'true' ? '<i class=\'fas fa-question-circle me-1\'></i> Ver pregunta completa' : '<i class=\'fas fa-eye-slash me-1\'></i> Ocultar pregunta'">
+                                                    <i class="fas fa-question-circle me-1"></i> Ver pregunta completa
+                                                </button>
+                                                @if($questionSkills)
+                                                    <span class="ms-3 text-muted small" style="font-style: italic;">
+                                                        <i class="fas fa-star me-1"></i> {{ $questionSkills }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                            <div class="collapse" id="question-detail-{{ $questionId }}">
+                                                <div class="p-3 bg-light rounded">
+                                                    @if($questionTitle)
+                                                        <h6 class="text-primary mb-2">{{ $questionTitle }}</h6>
+                                                    @endif
+                                                    <p class="mb-0" style="white-space: pre-line; font-size: 0.95rem;">{{ $questionText }}</p>
+                                                </div>
+                                            </div>
                                         </div>
                                     @endif
                                     

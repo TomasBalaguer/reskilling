@@ -288,18 +288,32 @@ class ProcessQuestionnaireAudioJob implements ShouldQueue
      */
     private function getQuestionText(string $questionId): string
     {
-        // Esto debería venir de la base de datos o configuración
-        $questions = [
-            'q1' => 'Si pudieras mandarte un mensaje a vos mismo/a hace unos años, ¿qué te dirías sobre quién sos hoy y lo que fuiste aprendiendo de vos?',
-            'q2' => 'Contame una vez en la que algo que te importaba no salió como esperabas. ¿Qué hiciste después? ¿Qué aprendiste de eso?',
-            'q3' => 'Tuviste que decidir entre seguir con algo que querías o cambiar de camino por algo nuevo. ¿Qué hiciste? ¿Cómo lo pensaste?',
-            'q4' => 'Contame alguna situacion, en un grupo de estudio, equipo o trabajo en donde algo no funcionaba (alguien no participaba, hubo malentendidos o tensión). ¿Cómo lo manejaste? ¿Qué dijiste o hiciste?',
-            'q5' => 'Contame una vez que resolviste un problema de una manera poco común. ¿Qué hiciste diferente y por qué creés que funcionó?',
-            'q6' => '¿En qué cosas te dan ganas de esforzarte hoy? ¿Qué te gustaría lograr a futuro (en la carrera, en tu vida o en lo que hacés)?',
-            'q7' => 'Lee el siguiente relato y contesta las preguntas: "Después de meses trabajando en mi idea, finalmente presenté mi Proyecto frente a un grupo de profesores..." ¿Qué creés que sintió esa persona? ¿Qué harías en su lugar? ¿Qué le dirías si fuera parte de tu equipo o un amigo?'
-        ];
+        try {
+            // Intentar obtener la pregunta del cuestionario en la base de datos
+            $response = CampaignResponse::find($this->responseId);
+            if ($response && $response->questionnaire) {
+                $questions = $response->questionnaire->questions;
+                
+                if (isset($questions[$questionId])) {
+                    $questionData = $questions[$questionId];
+                    
+                    // Nueva estructura con question, title, skills
+                    if (is_array($questionData)) {
+                        return $questionData['question'] ?? 
+                               $questionData['text'] ?? 
+                               'Pregunta reflexiva';
+                    }
+                    
+                    // Si es string directo
+                    return $questionData;
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning("No se pudo obtener pregunta de la BD para ID: {$questionId}");
+        }
         
-        return $questions[$questionId] ?? 'Pregunta reflexiva';
+        // Fallback: usar el ID limpio
+        return "Pregunta " . str_replace(['reflective_questions_', 'q'], '', $questionId);
     }
 
     /**
