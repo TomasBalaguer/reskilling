@@ -426,6 +426,11 @@ class AdminController extends Controller
             $response->created_at->format('Y-m-d')
         );
 
+        // En desarrollo, mostrar en navegador para debug
+        if (app()->environment('local') && request()->has('preview')) {
+            return $pdf->stream($filename);
+        }
+        
         return $pdf->download($filename);
     }
 
