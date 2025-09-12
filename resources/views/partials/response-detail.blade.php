@@ -214,16 +214,29 @@
                             $questionTitle = '';
                             $questionSkills = '';
                             
+                            // Intentar con el ID directo primero
+                            $questionData = null;
                             if (isset($questions[$questionId])) {
-                                if (is_array($questions[$questionId])) {
+                                $questionData = $questions[$questionId];
+                            } 
+                            // Si no, intentar quitando el prefijo "reflective_questions_"
+                            else {
+                                $cleanId = str_replace('reflective_questions_', '', $questionId);
+                                if (isset($questions[$cleanId])) {
+                                    $questionData = $questions[$cleanId];
+                                }
+                            }
+                            
+                            if ($questionData) {
+                                if (is_array($questionData)) {
                                     // Nueva estructura con question, title, skills
-                                    $questionText = $questions[$questionId]['question'] ?? 
-                                                   $questions[$questionId]['text'] ?? 
-                                                   $questions[$questionId];
-                                    $questionTitle = $questions[$questionId]['title'] ?? '';
-                                    $questionSkills = $questions[$questionId]['skills'] ?? '';
+                                    $questionText = $questionData['question'] ?? 
+                                                   $questionData['text'] ?? 
+                                                   $questionData;
+                                    $questionTitle = $questionData['title'] ?? '';
+                                    $questionSkills = $questionData['skills'] ?? '';
                                 } else {
-                                    $questionText = $questions[$questionId];
+                                    $questionText = $questionData;
                                 }
                             }
                             
