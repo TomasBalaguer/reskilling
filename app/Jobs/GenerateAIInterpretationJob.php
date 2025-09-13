@@ -131,10 +131,35 @@ class GenerateAIInterpretationJob implements ShouldQueue
             $transcriptions = [];
             $hasAudioContent = false;
             
+            // Log the type of responses for debugging
+            Log::info("🔍 TIPO DE RESPONSES EN AI JOB", [
+                'response_id' => $this->responseId,
+                'type' => gettype($response->responses),
+                'is_string' => is_string($response->responses),
+                'is_array' => is_array($response->responses),
+                'sample' => is_string($response->responses) 
+                    ? substr($response->responses, 0, 200) . '...' 
+                    : 'Es array con ' . count($response->responses) . ' elementos',
+                'has_transcriptions_field' => !empty($response->transcriptions),
+                'has_prosodic_field' => !empty($response->prosodic_analysis),
+                'updated_at' => $response->updated_at,
+                'created_at' => $response->created_at
+            ]);
+            
             // Decode responses if it's a JSON string
             $responses = is_string($response->responses) 
                 ? json_decode($response->responses, true) 
                 : $response->responses;
+            
+            // Verify we have a valid array after decoding
+            if (!is_array($responses)) {
+                Log::error("❌ RESPONSES NO ES UN ARRAY DESPUÉS DE DECODIFICAR", [
+                    'response_id' => $this->responseId,
+                    'responses_type' => gettype($responses),
+                    'original_type' => gettype($response->responses)
+                ]);
+                return $questionnaireResults;
+            }
             
             // Extract transcriptions from responses
             foreach ($responses as $questionId => $questionResponse) {

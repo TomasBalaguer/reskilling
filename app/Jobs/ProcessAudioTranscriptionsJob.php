@@ -387,7 +387,11 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
                     'response_id' => $this->responseId,
                     'update_data_keys' => array_keys($updateData),
                     'transcriptions_count' => count($transcriptions),
-                    'prosodic_count' => count($prosodicAnalysis)
+                    'prosodic_count' => count($prosodicAnalysis),
+                    'responses_type' => gettype($updatedResponses),
+                    'responses_is_array' => is_array($updatedResponses),
+                    'sample_response_key' => array_key_first($updatedResponses),
+                    'will_save_as_json' => true
                 ]);
                 
                 try {
