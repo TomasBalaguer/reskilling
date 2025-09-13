@@ -301,43 +301,14 @@ class AIInterpretationService
                 }
                 
                 try {
-                    // Para archivos muy grandes, simplemente marcar como pendiente de procesamiento manual
-                    Log::warning('📦 ARCHIVO MUY GRANDE PARA PROCESAMIENTO AUTOMÁTICO', [
+                    // Intentar procesar con Files API para archivos grandes
+                    Log::warning('📦 ARCHIVO GRANDE DETECTADO, INTENTANDO CON FILES API', [
                         'file_size_mb' => $fileSizeMB,
                         'file_path' => $fullPath,
-                        'message' => 'Este archivo requiere procesamiento especial'
+                        'message' => 'Procesando con Files API de Gemini'
                     ]);
                     
-                    // Retornar una transcripción especial indicando que el archivo es muy grande
-                    return [
-                        'transcripcion' => '[Audio grande - Requiere procesamiento especial]',
-                        'error' => null,
-                        'error_type' => 'large_file_pending',
-                        'file_size_mb' => $fileSizeMB,
-                        'requires_special_processing' => true,
-                        'analisis_emocional' => [
-                            'felicidad' => 0,
-                            'tristeza' => 0,
-                            'ansiedad' => 0,
-                            'enojo' => 0,
-                            'miedo' => 0,
-                            'emocion_dominante' => 'pendiente'
-                        ],
-                        'metricas_prosodicas' => [
-                            'velocidad_habla' => 'no_disponible', // Debe ser string esperado por la vista
-                            'pausas_significativas' => 0,
-                            'titubeos' => 0,
-                            'energia_vocal' => 0, // Debe ser número para multiplicación
-                            'variacion_tonal' => 'no_disponible',
-                            'claridad_diccion' => 0 // Debe ser número para multiplicación
-                        ],
-                        'indicadores_psicologicos' => [
-                            'nivel_estres' => 0,
-                            'coherencia_emocional' => 0,
-                            'autenticidad' => 0
-                        ],
-                        'observaciones' => 'Este archivo de audio es muy grande y será procesado de forma especial'
-                    ];
+                    return $this->processLargeAudioWithFilesApi($fullPath, $mimeType, $questionContext, $fileSizeMB);
                     
                 } catch (\Exception $e) {
                     Log::error('❌ ERROR PROCESANDO ARCHIVO GRANDE', [
@@ -859,6 +830,143 @@ Responde SOLO con el JSON, sin texto adicional.";
                 'interpretations' => [],
                 'soft_skills_analysis' => [],
                 'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Procesar archivo de audio grande usando Files API
+     */
+    private function processLargeAudioWithFilesApi($fullPath, $mimeType, $questionContext, $fileSizeMB)
+    {
+        try {
+            $client = new Client();
+            $apiKey = config('services.gemini.api_key');
+            
+            // Paso 1: Subir el archivo
+            Log::info('📤 SUBIENDO ARCHIVO A FILES API', [
+                'file_size_mb' => $fileSizeMB,
+                'mime_type' => $mimeType
+            ]);
+            
+            // Leer el archivo
+            $fileContent = file_get_contents($fullPath);
+            
+            // Crear el archivo en Files API
+            $uploadUrl = "https://generativelanguage.googleapis.com/upload/v1beta/files?key={$apiKey}";
+            
+            $uploadResponse = $client->post($uploadUrl, [
+                'headers' => [
+                    'X-Goog-Upload-Command' => 'upload, finalize',
+                    'X-Goog-Upload-Header-Content-Length' => strlen($fileContent),
+                    'X-Goog-Upload-Header-Content-Type' => $mimeType,
+                ],
+                'body' => $fileContent,
+                'timeout' => 300 // 5 minutos para subida
+            ]);
+            
+            $fileData = json_decode($uploadResponse->getBody(), true);
+            $fileUri = $fileData['file']['uri'] ?? null;
+            
+            if (!$fileUri) {
+                throw new \Exception('No se pudo obtener el URI del archivo subido');
+            }
+            
+            Log::info('✅ ARCHIVO SUBIDO A FILES API', [
+                'file_uri' => $fileUri,
+                'upload_time' => $fileData['createTime'] ?? 'unknown'
+            ]);
+            
+            // Paso 2: Procesar con Gemini
+            $prompt = $this->buildAudioAnalysisPrompt($questionContext);
+            
+            $requestBody = [
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => $prompt],
+                            [
+                                'file_data' => [
+                                    'mime_type' => $mimeType,
+                                    'file_uri' => $fileUri
+                                ]
+                            ]
+                        ]
+                    ]
+                ],
+                'generationConfig' => [
+                    'temperature' => 0.3,
+                    'maxOutputTokens' => 8192,
+                    'responseMimeType' => 'application/json'
+                ]
+            ];
+            
+            $generateUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}";
+            
+            $response = $client->post($generateUrl, [
+                'json' => $requestBody,
+                'timeout' => 180 // 3 minutos para procesamiento
+            ]);
+            
+            $result = json_decode($response->getBody(), true);
+            
+            // Paso 3: Eliminar el archivo de Files API (limpieza)
+            try {
+                $deleteUrl = "{$fileUri}?key={$apiKey}";
+                $client->delete($deleteUrl);
+                Log::info('🗑️ Archivo eliminado de Files API');
+            } catch (\Exception $e) {
+                Log::warning('⚠️ No se pudo eliminar el archivo de Files API', [
+                    'error' => $e->getMessage()
+                ]);
+            }
+            
+            // Procesar respuesta
+            if (isset($result['candidates'][0]['content']['parts'][0]['text'])) {
+                $jsonContent = $result['candidates'][0]['content']['parts'][0]['text'];
+                $analysis = json_decode($jsonContent, true);
+                
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    Log::info('✅ ARCHIVO GRANDE PROCESADO EXITOSAMENTE', [
+                        'file_size_mb' => $fileSizeMB,
+                        'has_transcription' => isset($analysis['transcripcion'])
+                    ]);
+                    return $analysis;
+                }
+            }
+            
+            throw new \Exception('Respuesta inválida de Gemini');
+            
+        } catch (\Exception $e) {
+            Log::error('❌ ERROR EN FILES API', [
+                'error' => $e->getMessage(),
+                'file_size_mb' => $fileSizeMB
+            ]);
+            
+            // Retornar estructura de error pero sin fallar el job
+            return [
+                'transcripcion' => '[Error procesando archivo grande]',
+                'error' => 'Error al procesar archivo grande: ' . $e->getMessage(),
+                'error_type' => 'files_api_error',
+                'analisis_emocional' => [
+                    'felicidad' => 0,
+                    'tristeza' => 0,
+                    'ansiedad' => 0,
+                    'enojo' => 0,
+                    'miedo' => 0
+                ],
+                'metricas_prosodicas' => [
+                    'velocidad_habla' => 'no_disponible',
+                    'pausas_significativas' => 0,
+                    'titubeos' => 0,
+                    'energia_vocal' => 0,
+                    'claridad_diccion' => 0
+                ],
+                'indicadores_psicologicos' => [
+                    'nivel_estres' => 0,
+                    'coherencia_emocional' => 0,
+                    'autenticidad' => 0
+                ]
             ];
         }
     }
