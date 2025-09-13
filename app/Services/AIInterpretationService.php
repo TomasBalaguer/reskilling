@@ -308,7 +308,7 @@ class AIInterpretationService
                         'message' => 'Procesando con Files API de Gemini'
                     ]);
                     
-                    return $this->processLargeAudioWithFilesApi($fullPath, $mimeType, $questionContext, $fileSizeMB);
+                    return $this->processLargeAudioWithFilesApi($fullPath, $mimeType, $questionText, $fileSizeMB);
                     
                 } catch (\Exception $e) {
                     Log::error('❌ ERROR PROCESANDO ARCHIVO GRANDE', [
@@ -837,7 +837,7 @@ Responde SOLO con el JSON, sin texto adicional.";
     /**
      * Procesar archivo de audio grande usando Files API
      */
-    private function processLargeAudioWithFilesApi($fullPath, $mimeType, $questionContext, $fileSizeMB)
+    private function processLargeAudioWithFilesApi($fullPath, $mimeType, $questionText, $fileSizeMB)
     {
         try {
             $client = new Client();
@@ -878,7 +878,7 @@ Responde SOLO con el JSON, sin texto adicional.";
             ]);
             
             // Paso 2: Procesar con Gemini
-            $prompt = $this->buildAudioAnalysisPrompt($questionContext);
+            $prompt = $this->buildAudioAnalysisPrompt($questionText);
             
             $requestBody = [
                 'contents' => [
