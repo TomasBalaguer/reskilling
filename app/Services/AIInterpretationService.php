@@ -1117,7 +1117,7 @@ Responde SOLO con el JSON, sin texto adicional.";
                 ]);
                 
                 // Usar streaming para enviar el archivo
-                $uploadResponse = Http::timeout(300) // 5 minutos para archivos grandes
+                $uploadResponse = Http::timeout(480) // 8 minutos para archivos grandes
                     ->withOptions([
                         'body' => $fileStream,
                         'headers' => [
@@ -1217,9 +1217,9 @@ Responde SOLO con el JSON, sin texto adicional.";
                 'prompt_length' => strlen($analysisPrompt)
             ]);
             
-            // Realizar solicitud
+            // Realizar solicitud con timeout extendido para archivos grandes
             $startTime = microtime(true);
-            $response = Http::timeout(180)
+            $response = Http::timeout(480) // 8 minutos para archivos grandes via Files API
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post($url . "?key=" . $this->apiKey, $data);
             $responseTime = round(microtime(true) - $startTime, 2);
