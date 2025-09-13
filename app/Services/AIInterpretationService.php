@@ -221,37 +221,81 @@ class AIInterpretationService
                 'file_extension' => pathinfo($fullPath, PATHINFO_EXTENSION)
             ]);
             
-            // Validar tamaño del archivo antes de procesar
-            $maxSizeMB = 15; // Límite seguro para Gemini (15MB en binario = ~20MB en base64)
-            if ($fileSizeMB > $maxSizeMB) {
-                Log::warning('⚠️ ARCHIVO DE AUDIO DEMASIADO GRANDE', [
+            // Decidir qué método usar basado en el tamaño
+            $inlineDataLimitMB = 15; // Límite para usar inline_data (15MB = ~20MB en base64)
+            $filesApiLimitMB = 2000; // Límite de Files API (2GB)
+            
+            // Si el archivo es mayor a 15MB, usar Files API
+            if ($fileSizeMB > $inlineDataLimitMB) {
+                Log::info('📁 ARCHIVO GRANDE DETECTADO, USANDO FILES API', [
                     'file_size_mb' => $fileSizeMB,
-                    'max_size_mb' => $maxSizeMB,
-                    'file_path' => $fullPath
+                    'inline_limit_mb' => $inlineDataLimitMB,
+                    'method' => 'files_api'
                 ]);
                 
-                // Intentar comprimir el audio
-                $audioContent = $this->compressAudioIfNeeded($fullPath, $audioContent, $maxSizeMB);
-                $fileSizeMB = round(strlen($audioContent) / 1024 / 1024, 2);
-                
-                // Si aún es muy grande después de intentar comprimir, retornar error estructurado
-                if ($fileSizeMB > $maxSizeMB) {
-                    $errorMessage = "El archivo de audio es demasiado grande ({$fileSizeMB}MB). El límite máximo es {$maxSizeMB}MB. Por favor, grabe un audio más corto (máximo 5-7 minutos).";
+                // Validar que no exceda el límite de Files API (2GB)
+                if ($fileSizeMB > $filesApiLimitMB) {
+                    $errorMessage = "El archivo de audio es demasiado grande ({$fileSizeMB}MB). El límite máximo es {$filesApiLimitMB}MB (2GB).";
                     
-                    Log::error('❌ ARCHIVO DE AUDIO EXCEDE LÍMITE DESPUÉS DE COMPRESIÓN', [
+                    Log::error('❌ ARCHIVO EXCEDE LÍMITE DE FILES API', [
                         'file_size_mb' => $fileSizeMB,
-                        'max_size_mb' => $maxSizeMB,
-                        'file_path' => $fullPath,
-                        'error' => $errorMessage
+                        'max_size_mb' => $filesApiLimitMB,
+                        'file_path' => $fullPath
                     ]);
                     
-                    // Retornar estructura de error en lugar de lanzar excepción
                     return [
-                        'transcripcion' => '[Audio demasiado grande para procesar]',
+                        'transcripcion' => '[Audio excede el límite máximo de 2GB]',
                         'error' => $errorMessage,
-                        'error_type' => 'file_too_large',
+                        'error_type' => 'file_exceeds_2gb',
                         'file_size_mb' => $fileSizeMB,
-                        'max_size_mb' => $maxSizeMB,
+                        'max_size_mb' => $filesApiLimitMB,
+                        'analisis_emocional' => [
+                            'felicidad' => 0,
+                            'tristeza' => 0,
+                            'ansiedad' => 0,
+                            'enojo' => 0,
+                            'miedo' => 0
+                        ],
+                        'metricas_prosodicas' => [
+                            'velocidad_habla' => 'no_disponible',
+                            'pausas_significativas' => 0,
+                            'titubeos' => 0,
+                            'energia_vocal' => 0
+                        ],
+                        'indicadores_psicologicos' => [
+                            'nivel_estres' => 0,
+                            'coherencia_emocional' => 0,
+                            'autenticidad' => 0
+                        ]
+                    ];
+                }
+                
+                try {
+                    // Usar Files API para archivos grandes
+                    Log::info('🚀 INICIANDO PROCESO CON FILES API');
+                    
+                    // Subir archivo a Gemini Files API
+                    $fileData = $this->uploadAudioToGeminiFiles($fullPath, $mimeType);
+                    
+                    // Analizar usando el archivo subido
+                    $analysisResult = $this->analyzeAudioWithGeminiFiles($fileData, $questionText);
+                    
+                    // Opcionalmente eliminar el archivo después del análisis
+                    // Los archivos se eliminan automáticamente después de 48 horas
+                    // $this->deleteGeminiFile($fileData['name']);
+                    
+                    return $analysisResult;
+                    
+                } catch (\Exception $e) {
+                    Log::error('❌ ERROR USANDO FILES API, RETORNANDO ERROR ESTRUCTURADO', [
+                        'error' => $e->getMessage(),
+                        'file_size_mb' => $fileSizeMB
+                    ]);
+                    
+                    return [
+                        'transcripcion' => '[Error procesando con Files API]',
+                        'error' => 'Error al procesar archivo grande: ' . $e->getMessage(),
+                        'error_type' => 'files_api_error',
                         'analisis_emocional' => [
                             'felicidad' => 0,
                             'tristeza' => 0,
@@ -274,6 +318,12 @@ class AIInterpretationService
                 }
             }
             
+            // Para archivos pequeños, continuar con el método inline_data
+            Log::info('📦 USANDO MÉTODO INLINE_DATA', [
+                'file_size_mb' => $fileSizeMB,
+                'method' => 'inline_data'
+            ]);
+            
             Log::info('🔄 Codificando archivo a base64...');
             $audioData = base64_encode($audioContent);
             
@@ -284,43 +334,16 @@ class AIInterpretationService
                 'base64_size_mb' => $base64SizeMB
             ]);
             
-            // Validación adicional del tamaño en base64
-            $maxBase64SizeMB = 19; // Límite máximo para Gemini API (dejamos 1MB para el prompt y otros datos)
-            if ($base64SizeMB > $maxBase64SizeMB) {
-                $errorMessage = "El archivo codificado es demasiado grande ({$base64SizeMB}MB). Por favor, grabe un audio más corto (máximo 5-7 minutos).";
-                
-                Log::error('❌ ARCHIVO BASE64 EXCEDE LÍMITE DE GEMINI', [
+            // Ya no necesitamos validar el tamaño base64 aquí porque:
+            // - Los archivos < 15MB siempre serán < 20MB en base64
+            // - Los archivos > 15MB usan Files API
+            // Solo registramos si por alguna razón llegamos aquí con un archivo grande
+            if ($base64SizeMB > 19) {
+                Log::warning('⚠️ ARCHIVO BASE64 INESPERADAMENTE GRANDE', [
                     'base64_size_mb' => $base64SizeMB,
-                    'max_allowed_mb' => $maxBase64SizeMB,
-                    'error' => $errorMessage
+                    'file_size_mb' => $fileSizeMB,
+                    'note' => 'Este archivo debería haber usado Files API'
                 ]);
-                
-                // Retornar estructura de error en lugar de lanzar excepción
-                return [
-                    'transcripcion' => '[Audio demasiado grande para procesar - base64]',
-                    'error' => $errorMessage,
-                    'error_type' => 'base64_too_large',
-                    'base64_size_mb' => $base64SizeMB,
-                    'max_base64_size_mb' => $maxBase64SizeMB,
-                    'analisis_emocional' => [
-                        'felicidad' => 0,
-                        'tristeza' => 0,
-                        'ansiedad' => 0,
-                        'enojo' => 0,
-                        'miedo' => 0
-                    ],
-                    'metricas_prosodicas' => [
-                        'velocidad_habla' => 'no_disponible',
-                        'pausas_significativas' => 0,
-                        'titubeos' => 0,
-                        'energia_vocal' => 0
-                    ],
-                    'indicadores_psicologicos' => [
-                        'nivel_estres' => 0,
-                        'coherencia_emocional' => 0,
-                        'autenticidad' => 0
-                    ]
-                ];
             }
             
             // Ensure base64 data is clean (no data:...;base64, prefix)
@@ -1024,6 +1047,249 @@ Responde SOLO con el JSON, sin texto adicional.";
         ]);
         
         return $audioContent;
+    }
+
+    /**
+     * Upload audio file to Gemini Files API
+     * @param string $audioPath Path to the audio file
+     * @param string $mimeType MIME type of the audio file
+     * @return array File data including URI
+     */
+    private function uploadAudioToGeminiFiles(string $audioPath, string $mimeType): array
+    {
+        try {
+            $fileSize = filesize($audioPath);
+            $fileName = basename($audioPath);
+            
+            Log::info('📤 INICIANDO SUBIDA A GEMINI FILES API', [
+                'file_path' => $audioPath,
+                'file_size_mb' => round($fileSize / 1024 / 1024, 2),
+                'mime_type' => $mimeType,
+                'file_name' => $fileName
+            ]);
+            
+            // Step 1: Initialize resumable upload
+            $uploadUrl = "https://generativelanguage.googleapis.com/upload/v1beta/files?key={$this->apiKey}";
+            
+            // Start resumable upload session
+            $initResponse = Http::withHeaders([
+                'X-Goog-Upload-Protocol' => 'resumable',
+                'X-Goog-Upload-Command' => 'start',
+                'X-Goog-Upload-Header-Content-Length' => $fileSize,
+                'X-Goog-Upload-Header-Content-Type' => $mimeType,
+                'Content-Type' => 'application/json'
+            ])->post($uploadUrl, [
+                'file' => [
+                    'display_name' => $fileName
+                ]
+            ]);
+            
+            if (!$initResponse->successful()) {
+                throw new \Exception("Failed to initialize upload: " . $initResponse->body());
+            }
+            
+            // Get upload URI from response headers
+            $uploadUri = $initResponse->header('X-Goog-Upload-URL');
+            
+            if (!$uploadUri) {
+                throw new \Exception("No upload URI received from Gemini API");
+            }
+            
+            Log::info('📝 SESIÓN DE SUBIDA INICIADA', [
+                'upload_uri' => substr($uploadUri, 0, 100) . '...',
+                'status_code' => $initResponse->status()
+            ]);
+            
+            // Step 2: Upload the actual file content
+            $fileContent = file_get_contents($audioPath);
+            
+            $uploadResponse = Http::timeout(300) // 5 minutos para archivos grandes
+                ->withBody($fileContent, $mimeType)
+                ->withHeaders([
+                    'X-Goog-Upload-Command' => 'upload, finalize',
+                    'Content-Length' => $fileSize
+                ])
+                ->post($uploadUri);
+            
+            if (!$uploadResponse->successful()) {
+                throw new \Exception("Failed to upload file: " . $uploadResponse->body());
+            }
+            
+            $fileData = $uploadResponse->json();
+            
+            Log::info('✅ ARCHIVO SUBIDO A GEMINI FILES API', [
+                'file_uri' => $fileData['file']['uri'] ?? 'unknown',
+                'file_name' => $fileData['file']['displayName'] ?? $fileName,
+                'mime_type' => $fileData['file']['mimeType'] ?? $mimeType,
+                'size_bytes' => $fileData['file']['sizeBytes'] ?? $fileSize,
+                'state' => $fileData['file']['state'] ?? 'unknown'
+            ]);
+            
+            return $fileData['file'];
+            
+        } catch (\Exception $e) {
+            Log::error('❌ ERROR SUBIENDO ARCHIVO A GEMINI FILES API', [
+                'error' => $e->getMessage(),
+                'file_path' => $audioPath,
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Analyze audio using Gemini Files API
+     * @param array $fileData File data from Files API
+     * @param string $questionText Question text for context
+     * @return array Analysis result
+     */
+    private function analyzeAudioWithGeminiFiles(array $fileData, string $questionText): array
+    {
+        try {
+            $fileUri = $fileData['uri'];
+            $mimeType = $fileData['mimeType'] ?? 'audio/wav';
+            
+            Log::info('🎵 ANALIZANDO AUDIO CON FILES API', [
+                'file_uri' => $fileUri,
+                'mime_type' => $mimeType,
+                'has_question' => !empty($questionText)
+            ]);
+            
+            // Construir prompt
+            $analysisPrompt = $this->buildAudioAnalysisPrompt($questionText);
+            
+            // URL de la API
+            $url = "https://generativelanguage.googleapis.com/v1beta/{$this->model}:generateContent";
+            
+            // Preparar datos con referencia al archivo
+            $data = [
+                'contents' => [
+                    [
+                        'parts' => [
+                            [
+                                'file_data' => [
+                                    'mime_type' => $mimeType,
+                                    'file_uri' => $fileUri
+                                ]
+                            ],
+                            [
+                                'text' => $analysisPrompt
+                            ]
+                        ]
+                    ]
+                ],
+                'generationConfig' => [
+                    'temperature' => 0.1,
+                    'maxOutputTokens' => 2048,
+                    'topP' => 0.95,
+                    'topK' => 40
+                ]
+            ];
+            
+            Log::info('📤 ENVIANDO SOLICITUD A GEMINI CON FILE URI', [
+                'url' => $url,
+                'file_uri' => $fileUri,
+                'prompt_length' => strlen($analysisPrompt)
+            ]);
+            
+            // Realizar solicitud
+            $startTime = microtime(true);
+            $response = Http::timeout(180)
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->post($url . "?key=" . $this->apiKey, $data);
+            $responseTime = round(microtime(true) - $startTime, 2);
+            
+            Log::info('📥 RESPUESTA RECIBIDA (FILES API)', [
+                'response_time_seconds' => $responseTime,
+                'status_code' => $response->status(),
+                'successful' => $response->successful()
+            ]);
+            
+            if ($response->successful()) {
+                $responseBody = $response->json();
+                $rawResponse = $responseBody['candidates'][0]['content']['parts'][0]['text'];
+                
+                // Decodificar respuesta
+                $analysisResult = json_decode($rawResponse, true);
+                
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    $analysisResult = $this->extractJsonFromResponse($rawResponse);
+                }
+                
+                if (!$analysisResult) {
+                    throw new \Exception('No se pudo obtener análisis válido del audio');
+                }
+                
+                Log::info('✅ ANÁLISIS COMPLETADO CON FILES API', [
+                    'transcription_length' => strlen($analysisResult['transcripcion'] ?? ''),
+                    'has_prosodic' => isset($analysisResult['metricas_prosodicas']),
+                    'has_emotional' => isset($analysisResult['analisis_emocional'])
+                ]);
+                
+                return $analysisResult;
+                
+            } else {
+                throw new \Exception("Error en análisis: " . $response->status() . " - " . $response->body());
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('❌ ERROR EN ANÁLISIS CON FILES API', [
+                'error' => $e->getMessage(),
+                'file_uri' => $fileUri ?? 'unknown'
+            ]);
+            
+            // Retornar estructura de error
+            return [
+                'transcripcion' => '',
+                'error' => $e->getMessage(),
+                'analisis_emocional' => [
+                    'felicidad' => 0,
+                    'tristeza' => 0,
+                    'ansiedad' => 0,
+                    'enojo' => 0,
+                    'miedo' => 0
+                ],
+                'metricas_prosodicas' => [
+                    'velocidad_habla' => 'no_disponible',
+                    'pausas_significativas' => 0,
+                    'titubeos' => 0,
+                    'energia_vocal' => 0
+                ]
+            ];
+        }
+    }
+
+    /**
+     * Delete file from Gemini Files API
+     * @param string $fileName File name to delete
+     * @return bool Success status
+     */
+    private function deleteGeminiFile(string $fileName): bool
+    {
+        try {
+            $deleteUrl = "https://generativelanguage.googleapis.com/v1beta/{$fileName}?key={$this->apiKey}";
+            
+            $response = Http::delete($deleteUrl);
+            
+            if ($response->successful()) {
+                Log::info('🗑️ Archivo eliminado de Gemini Files API', [
+                    'file_name' => $fileName
+                ]);
+                return true;
+            } else {
+                Log::warning('⚠️ No se pudo eliminar archivo de Gemini', [
+                    'file_name' => $fileName,
+                    'status' => $response->status()
+                ]);
+                return false;
+            }
+        } catch (\Exception $e) {
+            Log::error('Error eliminando archivo de Gemini', [
+                'file_name' => $fileName,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
     }
 
 } 
