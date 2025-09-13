@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\CampaignResponse;
 use App\Models\Questionnaire;
 use Carbon\Carbon;
+use GuzzleHttp\Client;
 
 class AIInterpretationService
 {
