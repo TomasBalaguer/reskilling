@@ -327,7 +327,7 @@ class AIInterpretationService
             
             // Realizar solicitud con timeout extendido para audio
             $startTime = microtime(true);
-            $response = Http::timeout(60)
+            $response = Http::timeout(180) // Aumentado a 3 minutos para archivos grandes
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post($url . "?key=" . $this->apiKey, $data);
             $endTime = microtime(true);
