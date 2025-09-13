@@ -221,6 +221,36 @@ class AIInterpretationService
                 'file_extension' => pathinfo($fullPath, PATHINFO_EXTENSION)
             ]);
             
+            // Detectar mime type basado en el archivo original o el temporal
+            $fileForMimeDetection = !empty($originalFileName) ? $originalFileName : $fullPath;
+            $mimeType = $this->getAudioMimeType($fileForMimeDetection);
+            
+            Log::info('🎵 MIME TYPE DETECTADO', [
+                'mime_type' => $mimeType,
+                'file_path' => $fullPath,
+                'original_file' => $originalFileName ?? 'none'
+            ]);
+            
+            // Verificar si el formato es soportado por Gemini (v1beta endpoint)
+            $supportedFormats = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/aiff', 'audio/aac', 'audio/ogg', 'audio/flac'];
+            
+            if (!in_array($mimeType, $supportedFormats)) {
+                // Si es WebM, mostrar mensaje específico
+                if ($mimeType === 'audio/webm' || str_contains($mimeType, 'webm')) {
+                    Log::error('❌ Formato WebM no soportado por Gemini', [
+                        'mime_type' => $mimeType,
+                        'message' => 'El navegador está enviando audio en formato WebM. Configure el frontend para usar MP4 o MP3.'
+                    ]);
+                    throw new \Exception("Formato WebM no es soportado por Gemini API. Por favor, configure el frontend para grabar en formato MP4 o MP3.");
+                }
+                
+                Log::warning('⚠️ Formato de audio no soportado por Gemini', [
+                    'mime_type' => $mimeType,
+                    'supported_formats' => $supportedFormats
+                ]);
+                throw new \Exception("Formato de audio no soportado: {$mimeType}. Use MP3, MP4 o WAV.");
+            }
+            
             // Decidir qué método usar basado en el tamaño
             $inlineDataLimitMB = 15; // Límite para usar inline_data (15MB = ~20MB en base64)
             $filesApiLimitMB = 2000; // Límite de Files API (2GB)
@@ -353,38 +383,10 @@ class AIInterpretationService
             }
             
             $encodedSize = strlen($audioData);
-            Log::info('✅ Archivo codificado', [
+            Log::info('✅ Archivo codificado completo', [
                 'base64_size_bytes' => $encodedSize,
-                'base64_size_mb' => round($encodedSize / 1024 / 1024, 2)
-            ]);
-            
-            // Detectar mime type basado en el archivo original o el temporal
-            $fileForMimeDetection = !empty($originalFileName) ? $originalFileName : $fullPath;
-            $mimeType = $this->getAudioMimeType($fileForMimeDetection);
-            
-            // Verificar si el formato es soportado por Gemini (v1beta endpoint)
-            $supportedFormats = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/aiff', 'audio/aac', 'audio/ogg', 'audio/flac'];
-            
-            if (!in_array($mimeType, $supportedFormats)) {
-                // Si es WebM, mostrar mensaje específico
-                if ($mimeType === 'audio/webm' || str_contains($mimeType, 'webm')) {
-                    Log::error('❌ Formato WebM no soportado por Gemini', [
-                        'mime_type' => $mimeType,
-                        'message' => 'El navegador está enviando audio en formato WebM. Configure el frontend para usar MP4 o MP3.'
-                    ]);
-                    throw new \Exception("Formato WebM no es soportado por Gemini API. Por favor, configure el frontend para grabar en formato MP4 o MP3.");
-                }
-                
-                Log::warning('⚠️ Formato de audio no soportado por Gemini', [
-                    'mime_type' => $mimeType,
-                    'supported_formats' => $supportedFormats
-                ]);
-                throw new \Exception("Formato de audio no soportado: {$mimeType}. Use MP3, MP4 o WAV.");
-            }
-            
-            Log::info('🎵 Formato de audio válido para Gemini', [
-                'mime_type' => $mimeType,
-                'file_path' => $fullPath
+                'base64_size_mb' => round($encodedSize / 1024 / 1024, 2),
+                'mime_type' => $mimeType
             ]);
             
             // Construir prompt específico para análisis de audio
