@@ -210,9 +210,118 @@ class AIInterpretationService
             ]);
 
             // Leer y codificar el archivo de audio
-            Log::info('🔄 Codificando archivo a base64...');
             $audioContent = file_get_contents($fullPath);
+            
+            // Calcular tamaños
+            $fileSizeMB = round(strlen($audioContent) / 1024 / 1024, 2);
+            
+            Log::info('📊 INFORMACIÓN DEL ARCHIVO', [
+                'file_size_bytes' => strlen($audioContent),
+                'file_size_mb' => $fileSizeMB,
+                'file_extension' => pathinfo($fullPath, PATHINFO_EXTENSION)
+            ]);
+            
+            // Validar tamaño del archivo antes de procesar
+            $maxSizeMB = 7; // Límite seguro para Gemini (7MB en binario = ~9.3MB en base64)
+            if ($fileSizeMB > $maxSizeMB) {
+                Log::warning('⚠️ ARCHIVO DE AUDIO DEMASIADO GRANDE', [
+                    'file_size_mb' => $fileSizeMB,
+                    'max_size_mb' => $maxSizeMB,
+                    'file_path' => $fullPath
+                ]);
+                
+                // Intentar comprimir el audio
+                $audioContent = $this->compressAudioIfNeeded($fullPath, $audioContent, $maxSizeMB);
+                $fileSizeMB = round(strlen($audioContent) / 1024 / 1024, 2);
+                
+                // Si aún es muy grande después de intentar comprimir, retornar error estructurado
+                if ($fileSizeMB > $maxSizeMB) {
+                    $errorMessage = "El archivo de audio es demasiado grande ({$fileSizeMB}MB). El límite máximo es {$maxSizeMB}MB. Por favor, grabe un audio más corto (máximo 2-3 minutos).";
+                    
+                    Log::error('❌ ARCHIVO DE AUDIO EXCEDE LÍMITE DESPUÉS DE COMPRESIÓN', [
+                        'file_size_mb' => $fileSizeMB,
+                        'max_size_mb' => $maxSizeMB,
+                        'file_path' => $fullPath,
+                        'error' => $errorMessage
+                    ]);
+                    
+                    // Retornar estructura de error en lugar de lanzar excepción
+                    return [
+                        'transcripcion' => '[Audio demasiado grande para procesar]',
+                        'error' => $errorMessage,
+                        'error_type' => 'file_too_large',
+                        'file_size_mb' => $fileSizeMB,
+                        'max_size_mb' => $maxSizeMB,
+                        'analisis_emocional' => [
+                            'felicidad' => 0,
+                            'tristeza' => 0,
+                            'ansiedad' => 0,
+                            'enojo' => 0,
+                            'miedo' => 0
+                        ],
+                        'metricas_prosodicas' => [
+                            'velocidad_habla' => 'no_disponible',
+                            'pausas_significativas' => 0,
+                            'titubeos' => 0,
+                            'energia_vocal' => 0
+                        ],
+                        'indicadores_psicologicos' => [
+                            'nivel_estres' => 0,
+                            'coherencia_emocional' => 0,
+                            'autenticidad' => 0
+                        ]
+                    ];
+                }
+            }
+            
+            Log::info('🔄 Codificando archivo a base64...');
             $audioData = base64_encode($audioContent);
+            
+            $base64SizeMB = round(strlen($audioData) / 1024 / 1024, 2);
+            
+            Log::info('✅ Archivo codificado', [
+                'base64_size_bytes' => strlen($audioData),
+                'base64_size_mb' => $base64SizeMB
+            ]);
+            
+            // Validación adicional del tamaño en base64
+            $maxBase64SizeMB = 10; // Límite máximo para Gemini API
+            if ($base64SizeMB > $maxBase64SizeMB) {
+                $errorMessage = "El archivo codificado es demasiado grande ({$base64SizeMB}MB). Por favor, grabe un audio más corto (máximo 2-3 minutos).";
+                
+                Log::error('❌ ARCHIVO BASE64 EXCEDE LÍMITE DE GEMINI', [
+                    'base64_size_mb' => $base64SizeMB,
+                    'max_allowed_mb' => $maxBase64SizeMB,
+                    'error' => $errorMessage
+                ]);
+                
+                // Retornar estructura de error en lugar de lanzar excepción
+                return [
+                    'transcripcion' => '[Audio demasiado grande para procesar - base64]',
+                    'error' => $errorMessage,
+                    'error_type' => 'base64_too_large',
+                    'base64_size_mb' => $base64SizeMB,
+                    'max_base64_size_mb' => $maxBase64SizeMB,
+                    'analisis_emocional' => [
+                        'felicidad' => 0,
+                        'tristeza' => 0,
+                        'ansiedad' => 0,
+                        'enojo' => 0,
+                        'miedo' => 0
+                    ],
+                    'metricas_prosodicas' => [
+                        'velocidad_habla' => 'no_disponible',
+                        'pausas_significativas' => 0,
+                        'titubeos' => 0,
+                        'energia_vocal' => 0
+                    ],
+                    'indicadores_psicologicos' => [
+                        'nivel_estres' => 0,
+                        'coherencia_emocional' => 0,
+                        'autenticidad' => 0
+                    ]
+                ];
+            }
             
             // Ensure base64 data is clean (no data:...;base64, prefix)
             if (str_starts_with($audioData, 'data:')) {
@@ -879,6 +988,42 @@ Responde SOLO con el JSON, sin texto adicional.";
                 'content_reliability' => 0.6
             ]
         ];
+    }
+
+    /**
+     * Compress audio file if it's too large
+     * @param string $filePath Path to the audio file
+     * @param string $audioContent Raw audio content
+     * @param float $maxSizeMB Maximum allowed size in MB
+     * @return string Compressed audio content or original if compression fails
+     */
+    private function compressAudioIfNeeded(string $filePath, string $audioContent, float $maxSizeMB): string
+    {
+        $currentSizeMB = strlen($audioContent) / 1024 / 1024;
+        
+        // Si el archivo ya es pequeño, no hacer nada
+        if ($currentSizeMB <= $maxSizeMB) {
+            return $audioContent;
+        }
+        
+        Log::info('🔧 INTENTANDO COMPRIMIR AUDIO', [
+            'original_size_mb' => round($currentSizeMB, 2),
+            'target_size_mb' => $maxSizeMB
+        ]);
+        
+        // TODO: Implementar compresión usando FFmpeg o similar
+        // Por ahora, solo retornar el contenido original
+        // En el futuro, podemos usar:
+        // - FFmpeg para reducir bitrate
+        // - Convertir a formato más eficiente (opus, aac)
+        // - Reducir sample rate
+        // - Convertir stereo a mono
+        
+        Log::warning('⚠️ Compresión de audio no implementada aún', [
+            'message' => 'Se requiere FFmpeg para comprimir archivos grandes'
+        ]);
+        
+        return $audioContent;
     }
 
 } 

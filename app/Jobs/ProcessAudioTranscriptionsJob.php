@@ -53,28 +53,84 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
             // Validar y obtener respuestas
             $responses = $response->responses;
             
-            // Log inicial para debug
-            Log::info("🔍 INSPECCIONANDO DATOS DE RESPUESTA", [
+            // Log inicial DETALLADO para debug - incluyendo datos raw de la BD
+            $rawAttributes = $response->getRawOriginal();
+            Log::info("🔍 INSPECCIONANDO DATOS DE RESPUESTA AL CARGAR", [
                 'response_id' => $this->responseId,
-                'responses_type' => gettype($responses),
-                'responses_is_string' => is_string($responses),
-                'responses_is_array' => is_array($responses),
-                'responses_preview' => is_string($responses) ? substr($responses, 0, 200) : 'not_string'
+                'step' => 'initial_data_load',
+                'cast_responses_type' => gettype($responses),
+                'cast_responses_is_string' => is_string($responses),
+                'cast_responses_is_array' => is_array($responses),
+                'cast_responses_preview' => is_string($responses) ? substr($responses, 0, 200) : 
+                    (is_array($responses) ? 'array_with_' . count($responses) . '_items' : gettype($responses)),
+                'raw_responses_available' => isset($rawAttributes['responses']),
+                'raw_responses_type' => isset($rawAttributes['responses']) ? gettype($rawAttributes['responses']) : 'not_available',
+                'raw_responses_is_string' => isset($rawAttributes['responses']) ? is_string($rawAttributes['responses']) : false,
+                'raw_responses_preview' => isset($rawAttributes['responses']) && is_string($rawAttributes['responses']) ? 
+                    substr($rawAttributes['responses'], 0, 200) . '...' : 'not_string_or_not_available',
+                'model_cast_config' => [
+                    'responses_cast' => 'array',
+                    'cast_working' => is_array($responses),
+                    'cast_should_convert_json_to_array' => true
+                ],
+                'data_consistency_check' => [
+                    'raw_is_json_string' => isset($rawAttributes['responses']) && is_string($rawAttributes['responses']) && 
+                        json_decode($rawAttributes['responses']) !== null,
+                    'cast_is_array' => is_array($responses),
+                    'conversion_working' => isset($rawAttributes['responses']) && is_string($rawAttributes['responses']) && 
+                        is_array($responses)
+                ]
             ]);
             
             // Si responses es string, intentar decodificar JSON
             if (is_string($responses)) {
+                Log::warning("⚠️ RESPONSES ES STRING - CAST NO FUNCIONÓ", [
+                    'response_id' => $this->responseId,
+                    'step' => 'manual_json_decode_needed',
+                    'responses_length' => strlen($responses),
+                    'responses_first_char' => substr($responses, 0, 1),
+                    'responses_last_char' => substr($responses, -1),
+                    'looks_like_json' => (substr($responses, 0, 1) === '{' || substr($responses, 0, 1) === '['),
+                    'cast_config_issue' => 'Laravel array cast should have auto-converted JSON string to array',
+                    'possible_causes' => [
+                        'database_field_not_json_type',
+                        'cast_not_properly_configured',
+                        'data_saved_incorrectly',
+                        'model_cache_issue'
+                    ]
+                ]);
+                
                 $decoded = json_decode($responses, true);
                 if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                     $responses = $decoded;
-                    Log::info("✅ JSON decodificado exitosamente");
+                    Log::info("✅ JSON DECODIFICADO EXITOSAMENTE (FALLBACK)", [
+                        'response_id' => $this->responseId,
+                        'step' => 'manual_json_decode_success',
+                        'decoded_type' => gettype($decoded),
+                        'decoded_count' => count($decoded),
+                        'first_key' => array_key_first($decoded),
+                        'note' => 'This should not be necessary if Laravel casting is working properly'
+                    ]);
                 } else {
-                    Log::error("❌ Error decodificando JSON de responses", [
+                    Log::error("❌ ERROR DECODIFICANDO JSON DE RESPONSES", [
+                        'response_id' => $this->responseId,
+                        'step' => 'manual_json_decode_failed',
                         'json_error' => json_last_error_msg(),
-                        'raw_responses' => $responses
+                        'json_error_code' => json_last_error(),
+                        'raw_responses_length' => strlen($responses),
+                        'raw_responses_preview' => substr($responses, 0, 500),
+                        'raw_responses_full' => $responses
                     ]);
                     return;
                 }
+            } else {
+                Log::info("✅ RESPONSES YA ES ARRAY - CAST FUNCIONÓ CORRECTAMENTE", [
+                    'response_id' => $this->responseId,
+                    'step' => 'cast_working_properly',
+                    'responses_type' => gettype($responses),
+                    'responses_count' => count($responses),
+                    'note' => 'Laravel array cast converted JSON string to array automatically'
+                ]);
             }
             
             // Verificar que responses sea array después de procesamiento
@@ -267,8 +323,23 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
                                 Log::error("❌ ANÁLISIS CON ERROR", [
                                     'response_id' => $this->responseId,
                                     'question_id' => $questionId,
-                                    'error' => $analysis['error']
+                                    'error' => $analysis['error'],
+                                    'error_type' => $analysis['error_type'] ?? 'unknown'
                                 ]);
+                                
+                                // Guardar la transcripción de error para que el usuario sepa qué pasó
+                                if (isset($analysis['transcripcion'])) {
+                                    $updatedResponses[$responseKey]['transcription_text'] = $analysis['transcripcion'];
+                                    $updatedResponses[$responseKey]['transcription_error'] = $analysis['error'];
+                                    $hasUpdates = true;
+                                    
+                                    Log::info("⚠️ TRANSCRIPCIÓN DE ERROR GUARDADA", [
+                                        'response_id' => $this->responseId,
+                                        'question_id' => $questionId,
+                                        'error_type' => $analysis['error_type'] ?? 'unknown',
+                                        'transcription' => $analysis['transcripcion']
+                                    ]);
+                                }
                             }
                             
                             // Limpiar archivo temporal si es de S3
@@ -376,6 +447,44 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
                     }
                 }
                 
+                // Log detallado del estado ANTES de preparar el update
+                Log::info("📝 DATOS PREPARADOS PARA GUARDAR", [
+                    'response_id' => $this->responseId,
+                    'step' => 'pre_update_preparation',
+                    'original_responses_type' => gettype($response->responses),
+                    'original_responses_is_string' => is_string($response->responses),
+                    'original_responses_is_array' => is_array($response->responses),
+                    'updated_responses_type' => gettype($updatedResponses),
+                    'updated_responses_is_array' => is_array($updatedResponses),
+                    'updated_responses_count' => count($updatedResponses),
+                    'transcriptions_count' => count($transcriptions),
+                    'prosodic_count' => count($prosodicAnalysis),
+                    'sample_response_structure' => !empty($updatedResponses) ? [
+                        'first_key' => array_key_first($updatedResponses),
+                        'first_value_keys' => is_array(reset($updatedResponses)) ? array_keys(reset($updatedResponses)) : 'not_array'
+                    ] : 'empty'
+                ]);
+                
+                // Log información del entorno y configuración
+                Log::info("🔧 INFORMACIÓN DEL ENTORNO Y CONFIGURACIÓN", [
+                    'response_id' => $this->responseId,
+                    'step' => 'environment_info',
+                    'laravel_version' => app()->version(),
+                    'database_driver' => config('database.default'),
+                    'database_config' => config('database.connections.' . config('database.default')),
+                    'model_info' => [
+                        'table' => $response->getTable(),
+                        'connection' => $response->getConnectionName(),
+                        'casts' => $response->getCasts(),
+                        'responses_cast' => $response->getCasts()['responses'] ?? 'not_set'
+                    ],
+                    'php_version' => PHP_VERSION,
+                    'json_functions' => [
+                        'json_encode_available' => function_exists('json_encode'),
+                        'json_decode_available' => function_exists('json_decode')
+                    ]
+                ]);
+                
                 // Actualizar todos los campos relevantes
                 $updateData = [
                     'responses' => $updatedResponses,
@@ -383,36 +492,121 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
                     'prosodic_analysis' => !empty($prosodicAnalysis) ? $prosodicAnalysis : null
                 ];
                 
-                Log::info("🔄 INTENTANDO ACTUALIZAR RESPUESTA", [
+                // Log detallado de lo que se va a guardar
+                Log::info("🔄 DATOS A ACTUALIZAR EN BD", [
                     'response_id' => $this->responseId,
+                    'step' => 'pre_database_save',
                     'update_data_keys' => array_keys($updateData),
-                    'transcriptions_count' => count($transcriptions),
-                    'prosodic_count' => count($prosodicAnalysis),
-                    'responses_type' => gettype($updatedResponses),
-                    'responses_is_array' => is_array($updatedResponses),
-                    'sample_response_key' => array_key_first($updatedResponses),
-                    'will_save_as_json' => true
+                    'responses_field_type' => gettype($updateData['responses']),
+                    'responses_field_is_array' => is_array($updateData['responses']),
+                    'responses_field_json_preview' => substr(json_encode($updateData['responses']), 0, 200),
+                    'responses_field_serialized_length' => strlen(json_encode($updateData['responses'])),
+                    'transcriptions_is_null' => is_null($updateData['transcriptions']),
+                    'prosodic_is_null' => is_null($updateData['prosodic_analysis']),
+                    'model_casts' => [
+                        'responses' => 'array (should auto-encode)',
+                        'transcriptions' => 'array (should auto-encode)',
+                        'prosodic_analysis' => 'array (should auto-encode)'
+                    ]
+                ]);
+                
+                // Log del estado del modelo ANTES del update
+                Log::info("📊 ESTADO DEL MODELO ANTES DEL UPDATE", [
+                    'response_id' => $this->responseId,
+                    'step' => 'model_state_before_save',
+                    'model_responses_type' => gettype($response->responses),
+                    'model_responses_is_string' => is_string($response->responses),
+                    'model_responses_is_array' => is_array($response->responses),
+                    'model_responses_preview' => is_string($response->responses) ? 
+                        substr($response->responses, 0, 200) : 
+                        (is_array($response->responses) ? 'array_with_' . count($response->responses) . '_items' : 'other'),
+                    'model_dirty' => $response->getDirty(),
+                    'model_original' => array_keys($response->getOriginal()),
+                    'model_exists' => $response->exists,
+                    'model_was_recently_created' => $response->wasRecentlyCreated
                 ]);
                 
                 try {
+                    // Ejecutar el update
                     $updateResult = $response->update($updateData);
+                    
+                    // Log inmediato después del update (antes del refresh)
+                    Log::info("💾 RESULTADO INMEDIATO DEL UPDATE", [
+                        'response_id' => $this->responseId,
+                        'step' => 'post_update_immediate',
+                        'update_result' => $updateResult,
+                        'model_responses_type_after_update' => gettype($response->responses),
+                        'model_responses_is_string_after' => is_string($response->responses),
+                        'model_responses_is_array_after' => is_array($response->responses),
+                        'model_was_changed' => $response->wasChanged(),
+                        'model_changes' => $response->getChanges()
+                    ]);
                     
                     // Verificar que realmente se guardó
                     $response->refresh();
                     
-                    Log::info("✅ Transcripciones y análisis prosódico guardados", [
+                    // Log después del refresh para ver cómo Laravel cargó los datos desde BD
+                    Log::info("🔄 ESTADO DESPUÉS DEL REFRESH DESDE BD", [
                         'response_id' => $this->responseId,
+                        'step' => 'post_refresh_from_database',
+                        'refreshed_responses_type' => gettype($response->responses),
+                        'refreshed_responses_is_string' => is_string($response->responses),
+                        'refreshed_responses_is_array' => is_array($response->responses),
+                        'refreshed_responses_preview' => is_string($response->responses) ? 
+                            substr($response->responses, 0, 200) . '...' : 
+                            (is_array($response->responses) ? 'array_with_' . count($response->responses) . '_items' : gettype($response->responses)),
+                        'attribute_casting_working' => [
+                            'responses_cast' => 'array',
+                            'actual_type' => gettype($response->responses),
+                            'cast_working' => is_array($response->responses)
+                        ]
+                    ]);
+                    
+                    // Verificación adicional: acceso directo a atributos raw
+                    $rawAttributes = $response->getRawOriginal();
+                    if (isset($rawAttributes['responses'])) {
+                        Log::info("🔍 RAW ATTRIBUTES DESDE BD", [
+                            'response_id' => $this->responseId,
+                            'step' => 'raw_database_inspection',
+                            'raw_responses_type' => gettype($rawAttributes['responses']),
+                            'raw_responses_is_string' => is_string($rawAttributes['responses']),
+                            'raw_responses_preview' => is_string($rawAttributes['responses']) ? 
+                                substr($rawAttributes['responses'], 0, 200) . '...' : 
+                                gettype($rawAttributes['responses']),
+                            'raw_vs_cast_comparison' => [
+                                'raw_type' => gettype($rawAttributes['responses']),
+                                'cast_type' => gettype($response->responses),
+                                'raw_is_json' => is_string($rawAttributes['responses']) && 
+                                    json_decode($rawAttributes['responses']) !== null,
+                                'cast_is_array' => is_array($response->responses)
+                            ]
+                        ]);
+                    }
+                    
+                    Log::info("✅ GUARDADO COMPLETO Y VERIFICADO", [
+                        'response_id' => $this->responseId,
+                        'step' => 'save_verification_complete',
                         'update_result' => $updateResult,
                         'transcriptions_count' => count($transcriptions),
                         'prosodic_count' => count($prosodicAnalysis),
                         'fields_updated' => array_keys($updateData),
                         'saved_transcriptions' => !empty($response->transcriptions),
-                        'saved_prosodic' => !empty($response->prosodic_analysis)
+                        'saved_prosodic' => !empty($response->prosodic_analysis),
+                        'final_responses_format' => [
+                            'type' => gettype($response->responses),
+                            'is_array' => is_array($response->responses),
+                            'count' => is_array($response->responses) ? count($response->responses) : 'not_array'
+                        ]
                     ]);
                 } catch (\Exception $saveError) {
                     Log::error("❌ ERROR AL GUARDAR EN BD", [
                         'response_id' => $this->responseId,
+                        'step' => 'database_save_error',
                         'error' => $saveError->getMessage(),
+                        'error_code' => $saveError->getCode(),
+                        'error_file' => $saveError->getFile(),
+                        'error_line' => $saveError->getLine(),
+                        'update_data_types' => array_map('gettype', $updateData),
                         'trace' => $saveError->getTraceAsString()
                     ]);
                     throw $saveError;
