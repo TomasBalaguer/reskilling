@@ -368,14 +368,36 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
                     'prosodic_analysis' => !empty($prosodicAnalysis) ? $prosodicAnalysis : null
                 ];
                 
-                $response->update($updateData);
-                
-                Log::info("✅ Transcripciones y análisis prosódico guardados", [
+                Log::info("🔄 INTENTANDO ACTUALIZAR RESPUESTA", [
                     'response_id' => $this->responseId,
+                    'update_data_keys' => array_keys($updateData),
                     'transcriptions_count' => count($transcriptions),
-                    'prosodic_count' => count($prosodicAnalysis),
-                    'fields_updated' => array_keys($updateData)
+                    'prosodic_count' => count($prosodicAnalysis)
                 ]);
+                
+                try {
+                    $updateResult = $response->update($updateData);
+                    
+                    // Verificar que realmente se guardó
+                    $response->refresh();
+                    
+                    Log::info("✅ Transcripciones y análisis prosódico guardados", [
+                        'response_id' => $this->responseId,
+                        'update_result' => $updateResult,
+                        'transcriptions_count' => count($transcriptions),
+                        'prosodic_count' => count($prosodicAnalysis),
+                        'fields_updated' => array_keys($updateData),
+                        'saved_transcriptions' => !empty($response->transcriptions),
+                        'saved_prosodic' => !empty($response->prosodic_analysis)
+                    ]);
+                } catch (\Exception $saveError) {
+                    Log::error("❌ ERROR AL GUARDAR EN BD", [
+                        'response_id' => $this->responseId,
+                        'error' => $saveError->getMessage(),
+                        'trace' => $saveError->getTraceAsString()
+                    ]);
+                    throw $saveError;
+                }
             }
             
             Log::info("Procesamiento asíncrono completado para respuesta: {$this->responseId}");
