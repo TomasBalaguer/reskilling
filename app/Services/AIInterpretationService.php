@@ -1109,6 +1109,7 @@ Responde SOLO con el JSON, sin texto adicional.";
                 ->withBody($fileContent, $mimeType)
                 ->withHeaders([
                     'X-Goog-Upload-Command' => 'upload, finalize',
+                    'X-Goog-Upload-Offset' => '0',
                     'Content-Length' => $fileSize
                 ])
                 ->post($uploadUri);
