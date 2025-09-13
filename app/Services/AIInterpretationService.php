@@ -222,7 +222,7 @@ class AIInterpretationService
             ]);
             
             // Validar tamaño del archivo antes de procesar
-            $maxSizeMB = 7; // Límite seguro para Gemini (7MB en binario = ~9.3MB en base64)
+            $maxSizeMB = 15; // Límite seguro para Gemini (15MB en binario = ~20MB en base64)
             if ($fileSizeMB > $maxSizeMB) {
                 Log::warning('⚠️ ARCHIVO DE AUDIO DEMASIADO GRANDE', [
                     'file_size_mb' => $fileSizeMB,
@@ -236,7 +236,7 @@ class AIInterpretationService
                 
                 // Si aún es muy grande después de intentar comprimir, retornar error estructurado
                 if ($fileSizeMB > $maxSizeMB) {
-                    $errorMessage = "El archivo de audio es demasiado grande ({$fileSizeMB}MB). El límite máximo es {$maxSizeMB}MB. Por favor, grabe un audio más corto (máximo 2-3 minutos).";
+                    $errorMessage = "El archivo de audio es demasiado grande ({$fileSizeMB}MB). El límite máximo es {$maxSizeMB}MB. Por favor, grabe un audio más corto (máximo 5-7 minutos).";
                     
                     Log::error('❌ ARCHIVO DE AUDIO EXCEDE LÍMITE DESPUÉS DE COMPRESIÓN', [
                         'file_size_mb' => $fileSizeMB,
@@ -285,9 +285,9 @@ class AIInterpretationService
             ]);
             
             // Validación adicional del tamaño en base64
-            $maxBase64SizeMB = 10; // Límite máximo para Gemini API
+            $maxBase64SizeMB = 19; // Límite máximo para Gemini API (dejamos 1MB para el prompt y otros datos)
             if ($base64SizeMB > $maxBase64SizeMB) {
-                $errorMessage = "El archivo codificado es demasiado grande ({$base64SizeMB}MB). Por favor, grabe un audio más corto (máximo 2-3 minutos).";
+                $errorMessage = "El archivo codificado es demasiado grande ({$base64SizeMB}MB). Por favor, grabe un audio más corto (máximo 5-7 minutos).";
                 
                 Log::error('❌ ARCHIVO BASE64 EXCEDE LÍMITE DE GEMINI', [
                     'base64_size_mb' => $base64SizeMB,
