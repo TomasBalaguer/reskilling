@@ -321,27 +321,22 @@ class AIInterpretationService
                             'ansiedad' => 0,
                             'enojo' => 0,
                             'miedo' => 0,
-                            'nota' => 'Pendiente de procesamiento'
+                            'emocion_dominante' => 'pendiente'
                         ],
                         'metricas_prosodicas' => [
-                            'velocidad_habla' => 'pendiente',
+                            'velocidad_habla' => 'no_disponible', // Debe ser string esperado por la vista
                             'pausas_significativas' => 0,
                             'titubeos' => 0,
-                            'energia_vocal' => 0,
-                            'nota' => 'Archivo grande - procesamiento pendiente'
+                            'energia_vocal' => 0, // Debe ser número para multiplicación
+                            'variacion_tonal' => 'no_disponible',
+                            'claridad_diccion' => 0 // Debe ser número para multiplicación
                         ],
                         'indicadores_psicologicos' => [
                             'nivel_estres' => 0,
                             'coherencia_emocional' => 0,
-                            'autenticidad' => 0,
-                            'nota' => 'Requiere análisis especial'
+                            'autenticidad' => 0
                         ],
-                        'metadata' => [
-                            'file_size_mb' => $fileSizeMB,
-                            'mime_type' => $mimeType,
-                            'processing_status' => 'pending_large_file',
-                            'message' => 'Este archivo de audio es muy grande y será procesado de forma especial'
-                        ]
+                        'observaciones' => 'Este archivo de audio es muy grande y será procesado de forma especial'
                     ];
                     
                 } catch (\Exception $e) {
