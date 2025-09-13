@@ -131,8 +131,13 @@ class GenerateAIInterpretationJob implements ShouldQueue
             $transcriptions = [];
             $hasAudioContent = false;
             
+            // Decode responses if it's a JSON string
+            $responses = is_string($response->responses) 
+                ? json_decode($response->responses, true) 
+                : $response->responses;
+            
             // Extract transcriptions from responses
-            foreach ($response->responses as $questionId => $questionResponse) {
+            foreach ($responses as $questionId => $questionResponse) {
                 if (isset($questionResponse['transcription_text'])) {
                     $transcriptions[$questionId] = $questionResponse['transcription_text'];
                     $hasAudioContent = true;
@@ -142,7 +147,7 @@ class GenerateAIInterpretationJob implements ShouldQueue
             if ($hasAudioContent) {
                 $questionnaireResults['transcriptions'] = $transcriptions;
                 $questionnaireResults['has_audio_content'] = true;
-                $questionnaireResults['responses'] = $response->responses;
+                $questionnaireResults['responses'] = $responses; // Use decoded responses
             }
         }
         
