@@ -230,10 +230,18 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
                                 $updatedResponses[$responseKey]['transcription_text'] = $analysis['transcripcion'];
                                 $hasUpdates = true;
                                 
-                                Log::info("✅ TRANSCRIPCIÓN GUARDADA", [
+                                Log::info("✅ TRANSCRIPCIÓN GUARDADA EN MEMORIA", [
                                     'response_id' => $this->responseId,
                                     'question_id' => $questionId,
+                                    'response_key' => $responseKey,
+                                    'has_updates_now' => $hasUpdates,
                                     'transcription_preview' => substr($analysis['transcripcion'], 0, 100) . '...'
+                                ]);
+                            } else {
+                                Log::warning("⚠️ NO HAY TRANSCRIPCIÓN EN EL ANÁLISIS", [
+                                    'response_id' => $this->responseId,
+                                    'question_id' => $questionId,
+                                    'analysis_keys' => array_keys($analysis)
                                 ]);
                             }
                             
@@ -342,6 +350,13 @@ class ProcessAudioTranscriptionsJob implements ShouldQueue
                     }
                 }
             }
+            
+            Log::info("📊 ESTADO ANTES DE GUARDAR", [
+                'response_id' => $this->responseId,
+                'has_updates' => $hasUpdates,
+                'updated_responses_count' => count($updatedResponses),
+                'is_public_format' => $isPublicFormat
+            ]);
             
             // Guardar respuestas actualizadas si hay cambios
             if ($hasUpdates) {
