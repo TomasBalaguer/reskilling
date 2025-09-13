@@ -301,31 +301,59 @@ class AIInterpretationService
                 }
                 
                 try {
-                    // Usar Files API para archivos grandes
-                    Log::info('🚀 INICIANDO PROCESO CON FILES API');
+                    // Para archivos muy grandes, simplemente marcar como pendiente de procesamiento manual
+                    Log::warning('📦 ARCHIVO MUY GRANDE PARA PROCESAMIENTO AUTOMÁTICO', [
+                        'file_size_mb' => $fileSizeMB,
+                        'file_path' => $fullPath,
+                        'message' => 'Este archivo requiere procesamiento especial'
+                    ]);
                     
-                    // Subir archivo a Gemini Files API
-                    $fileData = $this->uploadAudioToGeminiFiles($fullPath, $mimeType);
-                    
-                    // Analizar usando el archivo subido
-                    $analysisResult = $this->analyzeAudioWithGeminiFiles($fileData, $questionText);
-                    
-                    // Opcionalmente eliminar el archivo después del análisis
-                    // Los archivos se eliminan automáticamente después de 48 horas
-                    // $this->deleteGeminiFile($fileData['name']);
-                    
-                    return $analysisResult;
+                    // Retornar una transcripción especial indicando que el archivo es muy grande
+                    return [
+                        'transcripcion' => '[Audio grande - Requiere procesamiento especial]',
+                        'error' => null,
+                        'error_type' => 'large_file_pending',
+                        'file_size_mb' => $fileSizeMB,
+                        'requires_special_processing' => true,
+                        'analisis_emocional' => [
+                            'felicidad' => 0,
+                            'tristeza' => 0,
+                            'ansiedad' => 0,
+                            'enojo' => 0,
+                            'miedo' => 0,
+                            'nota' => 'Pendiente de procesamiento'
+                        ],
+                        'metricas_prosodicas' => [
+                            'velocidad_habla' => 'pendiente',
+                            'pausas_significativas' => 0,
+                            'titubeos' => 0,
+                            'energia_vocal' => 0,
+                            'nota' => 'Archivo grande - procesamiento pendiente'
+                        ],
+                        'indicadores_psicologicos' => [
+                            'nivel_estres' => 0,
+                            'coherencia_emocional' => 0,
+                            'autenticidad' => 0,
+                            'nota' => 'Requiere análisis especial'
+                        ],
+                        'metadata' => [
+                            'file_size_mb' => $fileSizeMB,
+                            'mime_type' => $mimeType,
+                            'processing_status' => 'pending_large_file',
+                            'message' => 'Este archivo de audio es muy grande y será procesado de forma especial'
+                        ]
+                    ];
                     
                 } catch (\Exception $e) {
-                    Log::error('❌ ERROR USANDO FILES API, RETORNANDO ERROR ESTRUCTURADO', [
+                    Log::error('❌ ERROR PROCESANDO ARCHIVO GRANDE', [
                         'error' => $e->getMessage(),
                         'file_size_mb' => $fileSizeMB
                     ]);
                     
                     return [
-                        'transcripcion' => '[Error procesando con Files API]',
+                        'transcripcion' => '[Error procesando archivo grande]',
                         'error' => 'Error al procesar archivo grande: ' . $e->getMessage(),
-                        'error_type' => 'files_api_error',
+                        'error_type' => 'large_file_error',
                         'analisis_emocional' => [
                             'felicidad' => 0,
                             'tristeza' => 0,
