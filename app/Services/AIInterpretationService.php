@@ -1103,16 +1103,38 @@ Responde SOLO con el JSON, sin texto adicional.";
             ]);
             
             // Step 2: Upload the actual file content
-            $fileContent = file_get_contents($audioPath);
+            // Para evitar problemas de memoria con archivos grandes, usar streaming
+            $fileStream = fopen($audioPath, 'r');
             
-            $uploadResponse = Http::timeout(300) // 5 minutos para archivos grandes
-                ->withBody($fileContent, $mimeType)
-                ->withHeaders([
-                    'X-Goog-Upload-Command' => 'upload, finalize',
-                    'X-Goog-Upload-Offset' => '0',
-                    'Content-Length' => $fileSize
-                ])
-                ->post($uploadUri);
+            if (!$fileStream) {
+                throw new \Exception("No se pudo abrir el archivo para streaming: {$audioPath}");
+            }
+            
+            try {
+                Log::info('📦 INICIANDO UPLOAD DE ARCHIVO', [
+                    'file_size_mb' => round($fileSize / 1024 / 1024, 2),
+                    'method' => 'streaming'
+                ]);
+                
+                // Usar streaming para enviar el archivo
+                $uploadResponse = Http::timeout(300) // 5 minutos para archivos grandes
+                    ->withOptions([
+                        'body' => $fileStream,
+                        'headers' => [
+                            'X-Goog-Upload-Command' => 'upload, finalize',
+                            'X-Goog-Upload-Offset' => '0',
+                            'Content-Type' => $mimeType,
+                            'Content-Length' => $fileSize
+                        ]
+                    ])
+                    ->post($uploadUri);
+                    
+            } finally {
+                // Siempre cerrar el stream
+                if (is_resource($fileStream)) {
+                    fclose($fileStream);
+                }
+            }
             
             if (!$uploadResponse->successful()) {
                 throw new \Exception("Failed to upload file: " . $uploadResponse->body());
