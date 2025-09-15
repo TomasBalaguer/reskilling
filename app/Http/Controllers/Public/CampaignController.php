@@ -218,6 +218,8 @@ class CampaignController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
+            'current_position' => 'required|string|max:255',
+            'professional_goal' => 'required|string|max:255',
         ]);
 
         // Verificar si el usuario ya participó en esta campaña
@@ -291,6 +293,8 @@ class CampaignController extends Controller
                 'session_id' => $this->generateUniqueSessionId($request),
                 'respondent_name' => $respondentInfo['name'],
                 'respondent_email' => $respondentInfo['email'],
+                'current_position' => $respondentInfo['current_position'] ?? null,
+                'professional_goal' => $respondentInfo['professional_goal'] ?? null,
                 'responses' => $request->input('responses', []),
                 'audio_files' => $audioData['audio_files'],
                 'audio_s3_paths' => $audioData['s3_paths'],

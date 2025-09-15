@@ -21,6 +21,8 @@ class CampaignResponse extends Model
         'age',
         'gender',
         'occupation',
+        'current_position',
+        'professional_goal',
         'session_id',
         'responses',
         'raw_responses',

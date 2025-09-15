@@ -75,6 +75,7 @@
         @endphp
 
         @if(!$respondentInfo && !isset($invitation))
+            <!-- Formulario para acceso público -->
             <div class="card mb-4 fade-in">
                 <div class="card-header">
                     <h5 class="mb-0">
@@ -113,6 +114,115 @@
                                        value="{{ old('email') }}" 
                                        required>
                                 @error('email')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="current_position" class="form-label">Situación profesional actual <span class="text-danger">*</span></label>
+                                <input type="text" 
+                                       class="form-control @error('current_position') is-invalid @enderror" 
+                                       id="current_position" 
+                                       name="current_position" 
+                                       value="{{ old('current_position') }}"
+                                       placeholder="Ej: Estudiante de Marketing, Analista de Sistemas, etc."
+                                       required>
+                                @error('current_position')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="professional_goal" class="form-label">Objetivo profesional <span class="text-danger">*</span></label>
+                                <input type="text" 
+                                       class="form-control @error('professional_goal') is-invalid @enderror" 
+                                       id="professional_goal" 
+                                       name="professional_goal" 
+                                       value="{{ old('professional_goal') }}"
+                                       placeholder="Ej: Gerente de Proyectos, Emprendedor, etc."
+                                       required>
+                                @error('professional_goal')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-arrow-right"></i> Continuar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @elseif(!$respondentInfo && isset($invitation))
+            <!-- Formulario para usuarios con invitación -->
+            <div class="card mb-4 fade-in">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user"></i> Información Adicional
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">
+                        Bienvenido/a {{ $invitation->name }}. Necesitamos algunos datos adicionales para continuar.
+                    </p>
+                    
+                    <form action="{{ route('public.campaign.save-respondent', $campaign->code) }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="campaign_id" value="{{ $campaign->id }}">
+                        <input type="hidden" name="name" value="{{ $invitation->name }}">
+                        <input type="hidden" name="email" value="{{ $invitation->email }}">
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="name_display" class="form-label">Nombre</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="name_display" 
+                                       value="{{ $invitation->name }}" 
+                                       disabled>
+                                <small class="text-muted">Este campo no puede ser modificado</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="email_display" class="form-label">Correo electrónico</label>
+                                <input type="email" 
+                                       class="form-control" 
+                                       id="email_display" 
+                                       value="{{ $invitation->email }}" 
+                                       disabled>
+                                <small class="text-muted">Este campo no puede ser modificado</small>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="current_position" class="form-label">Situación profesional actual <span class="text-danger">*</span></label>
+                                <input type="text" 
+                                       class="form-control @error('current_position') is-invalid @enderror" 
+                                       id="current_position" 
+                                       name="current_position" 
+                                       value="{{ old('current_position') }}"
+                                       placeholder="Ej: Estudiante de Marketing, Analista de Sistemas, etc."
+                                       required>
+                                @error('current_position')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="professional_goal" class="form-label">Objetivo profesional <span class="text-danger">*</span></label>
+                                <input type="text" 
+                                       class="form-control @error('professional_goal') is-invalid @enderror" 
+                                       id="professional_goal" 
+                                       name="professional_goal" 
+                                       value="{{ old('professional_goal') }}"
+                                       placeholder="Ej: Gerente de Proyectos, Emprendedor, etc."
+                                       required>
+                                @error('professional_goal')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
