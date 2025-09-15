@@ -68,16 +68,6 @@
                     <h2 class="question-main-title" x-text="currentQuestion?.title"></h2>
                 </template>
                 
-                <!-- Skills -->
-                <template x-if="currentQuestion?.skills">
-                    <div class="text-center mb-4">
-                        <span class="question-skills">
-                            <i class="fas fa-sparkles me-2"></i>
-                            <span x-text="currentQuestion?.skills"></span>
-                        </span>
-                    </div>
-                </template>
-                
                 <!-- Question Text with line breaks -->
                 <div class="question-text" x-html="currentQuestion?.question ? currentQuestion.question.replace(/\\n/g, '<br>') : (currentQuestion?.text?.replace(/\\n/g, '<br>') || '')"></div>
                 
