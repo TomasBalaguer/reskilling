@@ -86,11 +86,11 @@
 
         <!-- Questions Content -->
         <div x-show="!showIntro">
-        <!-- Section Title -->
-        <div class="mb-4" x-show="currentSection && currentSection.title">
+        <!-- Section Title (hidden) -->
+        <!-- <div class="mb-4" x-show="currentSection && currentSection.title">
             <h5 class="question-title" x-text="currentSection?.title"></h5>
             <p class="text-muted" x-show="currentSection?.description" x-text="currentSection?.description"></p>
-        </div>
+        </div> -->
 
         <!-- Instructions -->
         <div class="alert alert-info mb-4" x-show="currentSection?.instructions && currentSection.instructions.length > 0">
