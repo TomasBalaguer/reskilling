@@ -17,6 +17,7 @@ class Questionnaire extends Model
     protected $fillable = [
         'name',
         'description',
+        'intro',
         'scoring_type',
         'questionnaire_type',
         'questions',

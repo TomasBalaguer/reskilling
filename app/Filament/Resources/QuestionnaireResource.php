@@ -42,6 +42,19 @@ class QuestionnaireResource extends Resource
                             ->helperText('Descripción detallada del propósito del cuestionario')
                             ->rows(3)
                             ->columnSpanFull(),
+                        Forms\Components\RichEditor::make('intro')
+                            ->label('Introducción')
+                            ->helperText('Texto de introducción que se mostrará antes de comenzar el cuestionario')
+                            ->toolbarButtons([
+                                'bold',
+                                'italic',
+                                'underline',
+                                'bulletList',
+                                'orderedList',
+                                'redo',
+                                'undo',
+                            ])
+                            ->columnSpanFull(),
                         Forms\Components\Select::make('scoring_type')
                             ->label('Tipo de Puntuación')
                             ->required()

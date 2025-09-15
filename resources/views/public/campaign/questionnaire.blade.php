@@ -2,6 +2,36 @@
 
 @section('title', $questionnaire->name . ' - ' . $campaign->name)
 
+@section('styles')
+<style>
+    .intro-content {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #495057;
+    }
+    .intro-content h1, .intro-content h2, .intro-content h3, 
+    .intro-content h4, .intro-content h5, .intro-content h6 {
+        color: #2c3e50;
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    .intro-content ul, .intro-content ol {
+        margin-left: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    .intro-content li {
+        margin-bottom: 0.5rem;
+    }
+    .intro-content p {
+        margin-bottom: 1rem;
+    }
+    .intro-content strong {
+        color: #2c3e50;
+        font-weight: 600;
+    }
+</style>
+@endsection
+
 @section('content')
 <div x-data="questionnaireApp()" x-init="init()">
     <!-- Header -->
@@ -29,15 +59,33 @@
                         </div>
                     </div>
                     <div class="small text-muted">
-                        Sección <span x-text="currentSectionIndex + 1"></span> de <span x-text="sections.length"></span>
+                        <span x-show="showIntro">Introducción</span>
+                        <span x-show="!showIntro">Sección <span x-text="currentSectionIndex + 1"></span> de <span x-text="sections.length"></span></span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Question Content -->
-    <div class="question-card" x-show="currentSection">
+    <!-- Main Content Card (Introduction or Questions) -->
+    <div class="question-card">
+        <!-- Introduction Slide -->
+        @if($questionnaire->intro)
+        <div x-show="showIntro">
+            <div class="mb-4">
+                <h5 class="question-title">
+                    <i class="fas fa-info-circle text-primary me-2"></i>
+                    Introducción
+                </h5>
+            </div>
+            <div class="intro-content">
+                {!! $questionnaire->intro !!}
+            </div>
+        </div>
+        @endif
+
+        <!-- Questions Content -->
+        <div x-show="!showIntro">
         <!-- Section Title -->
         <div class="mb-4" x-show="currentSection && currentSection.title">
             <h5 class="question-title" x-text="currentSection?.title"></h5>
@@ -93,37 +141,58 @@
                 </div>
             </div>
         </div>
+        </div> <!-- End Questions Content -->
+    </div> <!-- End question-card -->
 
-        <!-- Navigation -->
-        <div class="question-nav">
+    <!-- Navigation -->
+    <div class="card mt-3">
+        <div class="card-body">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <!-- Previous Button -->
                 <button type="button" 
                         class="btn btn-outline-secondary"
                         @click="previousQuestion()"
-                        :disabled="currentQuestionIndex === 0 && currentSectionIndex === 0">
+                        :disabled="showIntro || (currentQuestionIndex === 0 && currentSectionIndex === 0)"
+                        x-show="!showIntro">
                     <i class="fas fa-chevron-left me-2"></i>
                     <span class="d-none d-sm-inline">Anterior</span>
                 </button>
                 
-                <div class="progress-indicator">
+                <!-- Empty space when showing intro -->
+                <div x-show="showIntro"></div>
+                
+                <!-- Progress Indicator -->
+                <div class="progress-indicator" x-show="!showIntro">
                     <i class="fas fa-tasks me-2"></i>
                     <span x-text="currentQuestionIndex + 1"></span> / <span x-text="currentSection?.questions?.length || 0"></span>
                 </div>
                 
+                <!-- Navigation Buttons -->
                 <div>
+                    <!-- Start Button (for intro) -->
+                    <button type="button" 
+                            class="btn btn-primary"
+                            @click="startQuestionnaire()"
+                            x-show="showIntro">
+                        <i class="fas fa-play me-2"></i>
+                        Iniciar
+                    </button>
+                    
+                    <!-- Next Button (for questions) -->
                     <button type="button" 
                             class="btn btn-primary"
                             @click="nextQuestion()"
-                            x-show="!isLastQuestion || !isLastSection"
+                            x-show="!showIntro && (!isLastQuestion || !isLastSection)"
                             :disabled="!hasCurrentResponse">
                         <span class="d-none d-sm-inline">Siguiente</span>
                         <i class="fas fa-chevron-right ms-2"></i>
                     </button>
                     
+                    <!-- Submit Button (for last question) -->
                     <button type="button" 
                             class="btn btn-success"
                             @click="submitQuestionnaire()"
-                            x-show="isLastQuestion && isLastSection"
+                            x-show="!showIntro && isLastQuestion && isLastSection"
                             :disabled="!hasCurrentResponse || submitting">
                         <span x-show="!submitting">
                             <i class="fas fa-check-circle me-2"></i>
@@ -140,7 +209,7 @@
     </div>
 
     <!-- Loading State -->
-    <div class="text-center py-5" x-show="!currentSection">
+    <div class="text-center py-5" x-show="!currentSection && !showIntro">
         <i class="fas fa-spinner fa-spin fa-2x text-primary mb-3"></i>
         <p>Cargando cuestionario...</p>
     </div>
@@ -155,6 +224,7 @@ function questionnaireApp() {
         questionnaire: @json($questionnaire),
         structure: @json($structure),
         campaignCode: '{{ $campaign->code }}',
+        hasIntro: {{ $questionnaire->intro ? 'true' : 'false' }},
         
         // State
         sections: [],
@@ -163,6 +233,7 @@ function questionnaireApp() {
         responses: {},
         submitting: false,
         startTime: Date.now(),
+        showIntro: {{ $questionnaire->intro ? 'true' : 'false' }},
         
         // Computed properties
         get currentSection() {
@@ -253,6 +324,12 @@ function questionnaireApp() {
             });
         },
         
+        startQuestionnaire() {
+            this.showIntro = false;
+            this.startTime = Date.now(); // Reset timer when actually starting
+            console.log('Questionnaire started after intro');
+        },
+        
         setResponse(value) {
             if (!this.currentResponseKey) return;
             this.responses[this.currentResponseKey] = value;
@@ -307,6 +384,12 @@ function questionnaireApp() {
         
         previousQuestion() {
             const oldResponseKey = this.currentResponseKey;
+            
+            // If we're at the first question of the first section and there's an intro, go back to intro
+            if (this.currentQuestionIndex === 0 && this.currentSectionIndex === 0 && this.hasIntro) {
+                this.showIntro = true;
+                return;
+            }
             
             if (this.currentQuestionIndex > 0) {
                 this.currentQuestionIndex--;

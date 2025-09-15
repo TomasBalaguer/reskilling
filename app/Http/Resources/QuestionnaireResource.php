@@ -18,6 +18,7 @@ class QuestionnaireResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
+            'intro' => $this->intro,
             'code' => $this->getQuestionnaireType()->value,
             'questionnaire_type' => $this->getQuestionnaireType()->value,
             'scoring_type' => $this->scoring_type,
